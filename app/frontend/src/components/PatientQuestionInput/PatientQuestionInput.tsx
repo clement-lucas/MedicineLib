@@ -100,27 +100,27 @@ export const PatientQuestionInput = ({ onSend, disabled, placeholder, clearOnSen
                 <Label>　患者名：</Label>
                 <Label>鈴木 ヨシ子</Label>
             </Stack>
-            <Stack horizontal className={styles.questionInputContainer}>
-            <TextField
-                className={styles.questionInputTextArea}
-                placeholder={placeholder}
-                multiline
-                resizable={false}
-                borderless
-                value={question}
-                onChange={onQuestionChange}
-                onKeyDown={onQuestionEnterPress}
-            />
-            <div className={styles.questionInputButtonsContainer}>
-                <div
-                    className={`${styles.questionInputSendButton} ${sendQuestionDisabled ? styles.questionInputSendButtonDisabled : ""}`}
-                    aria-label="Ask question button"
-                    onClick={sendQuestion}
-                >
-                    <Send28Filled primaryFill="rgba(115, 118, 225, 1)" />
+            <Stack horizontal className={styles.patientQuestionInputContainer}>
+                <TextField
+                    className={styles.patientQuestionInputTextArea}
+                    placeholder={placeholder}
+                    multiline
+                    resizable={false}
+                    borderless
+                    value={question}
+                    onChange={onQuestionChange}
+                    onKeyDown={onQuestionEnterPress}
+                />
+                <div className={styles.patientQuestionInputButtonsContainer}>
+                    <div
+                        className={`${styles.patientQuestionInputSendButton} ${sendQuestionDisabled ? styles.patientQuestionInputSendButtonDisabled : ""}`}
+                        aria-label="Ask question button"
+                        onClick={sendQuestion}
+                    >
+                        <Send28Filled primaryFill="rgba(115, 118, 225, 1)" />
+                    </div>
                 </div>
-            </div>
+            </Stack>
         </Stack>
-    </Stack>
 );
 };
