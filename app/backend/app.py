@@ -10,6 +10,7 @@ from approaches.retrievethenread import RetrieveThenReadApproach
 from approaches.readretrieveread import ReadRetrieveReadApproach
 from approaches.readdecomposeask import ReadDecomposeAsk
 from approaches.chatreadretrieveread import ChatReadRetrieveReadApproach
+from approaches.chatpatientreadretrieveread import ChatPatientReadRetrieveReadApproach
 from azure.storage.blob import BlobServiceClient
 
 # Replace these with your own values, either in environment variables or directly here
@@ -63,6 +64,10 @@ chat_approaches = {
     "rrr": ChatReadRetrieveReadApproach(search_client, AZURE_OPENAI_CHATGPT_DEPLOYMENT, AZURE_OPENAI_GPT_DEPLOYMENT, KB_FIELDS_SOURCEPAGE, KB_FIELDS_CONTENT)
 }
 
+chat_patient_approaches = {
+    "rrr": ChatPatientReadRetrieveReadApproach(search_client, AZURE_OPENAI_CHATGPT_DEPLOYMENT, AZURE_OPENAI_GPT_DEPLOYMENT, KB_FIELDS_SOURCEPAGE, KB_FIELDS_CONTENT)
+}
+
 app = Flask(__name__)
 
 @app.route("/", defaults={"path": "index.html"})
@@ -104,6 +109,20 @@ def chat():
         if not impl:
             return jsonify({"error": "unknown approach"}), 400
         r = impl.run(request.json["history"], request.json.get("overrides") or {})
+        return jsonify(r)
+    except Exception as e:
+        logging.exception("Exception in /chat")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/chat_patient", methods=["POST"])
+def chat_patient():
+    ensure_openai_token()
+    approach = request.json["approach"]
+    try:
+        impl = chat_patient_approaches.get(approach)
+        if not impl:
+            return jsonify({"error": "unknown approach"}), 400
+        r = impl.run(request.json["history"], request.json["history_patient"], request.json.get("overrides") or {})
         return jsonify(r)
     except Exception as e:
         logging.exception("Exception in /chat")

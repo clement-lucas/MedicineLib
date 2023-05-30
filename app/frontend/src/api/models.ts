@@ -22,6 +22,13 @@ export type AskRequest = {
     overrides?: AskRequestOverrides;
 };
 
+export type AskPatientRequest = {
+    patientCode: string;
+    question: string;
+    approach: Approaches;
+    overrides?: AskRequestOverrides;
+};
+
 export type AskResponse = {
     answer: string;
     thoughts: string | null;
@@ -36,6 +43,18 @@ export type ChatTurn = {
 
 export type ChatRequest = {
     history: ChatTurn[];
+    approach: Approaches;
+    overrides?: AskRequestOverrides;
+};
+
+export type ChatPatientTurn = {
+    patientcode: string;
+    bot?: string;
+};
+
+export type ChatPatientRequest = {
+    history: ChatTurn[];
+    history_patient: ChatPatientTurn[];
     approach: Approaches;
     overrides?: AskRequestOverrides;
 };
