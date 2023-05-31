@@ -19,9 +19,6 @@ export const QuestionInput = ({ onSend, disabled, placeholder, clearOnSend }: Pr
             return;
         }
 
-        alert(question);
-
-
         onSend(question);
 
         if (clearOnSend) {

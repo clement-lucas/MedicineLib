@@ -16,7 +16,17 @@ const Layout = () => {
                         <ul className={styles.headerNavList}>
                             <li>
                                 <NavLink to="/" className={({ isActive }) => (isActive ? styles.headerNavPageLinkActive : styles.headerNavPageLink)}>
-                                    Chat
+                                    医療文献を検索する／ 
+                                </NavLink>
+                            </li>
+                            <li>
+                                <NavLink to="/do" className={({ isActive }) => (isActive ? styles.headerNavPageLinkActive : styles.headerNavPageLink)}>
+                                    定型文書を作成する／ 
+                                </NavLink>
+                            </li>
+                            <li>
+                                <NavLink to="/pa" className={({ isActive }) => (isActive ? styles.headerNavPageLinkActive : styles.headerNavPageLink)}>
+                                    患者番号を指定して質問する／
                                 </NavLink>
                             </li>
                             <li className={styles.headerNavLeftMargin}>

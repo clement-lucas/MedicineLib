@@ -1,19 +1,19 @@
 import { useRef, useState, useEffect } from "react";
-import { Checkbox, Panel, DefaultButton, TextField, SpinButton } from "@fluentui/react";
-import stethoscope from "../../assets/stethoscope.svg";
+import { Checkbox, Panel, DefaultButton, TextField, SpinButton, Stack } from "@fluentui/react";
+import quill from "../../assets/quill.svg";
 
-import styles from "./Chat.module.css";
+import styles from "./Document.module.css";
 
-import { chatApi, Approaches, AskResponse, ChatRequest, ChatTurn } from "../../api";
+import { chatApi, chatPatientApi, Approaches, AskResponse, ChatRequest, ChatTurn, ChatPatientRequest, ChatPatientTurn  } from "../../api";
 import { Answer, AnswerError, AnswerLoading } from "../../components/Answer";
-import { QuestionInput } from "../../components/QuestionInput";
-import { ExampleList } from "../../components/Example";
+import { DocumentExampleList } from "../../components/Example";
 import { UserChatMessage } from "../../components/UserChatMessage";
 import { AnalysisPanel, AnalysisPanelTabs } from "../../components/AnalysisPanel";
 import { SettingsButton } from "../../components/SettingsButton";
 import { ClearChatButton } from "../../components/ClearChatButton";
+import { PatientCodeInput } from "../../components/PatientCodeInput/PatientCodeInput";
 
-const Chat = () => {
+const Document = () => {
     const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false);
     const [promptTemplate, setPromptTemplate] = useState<string>("");
     const [retrieveCount, setRetrieveCount] = useState<number>(3);
@@ -33,6 +33,7 @@ const Chat = () => {
 
     const [selectedAnswer, setSelectedAnswer] = useState<number>(0);
     const [answers, setAnswers] = useState<[user: string, response: AskResponse][]>([]);
+    //const [answers, setAnswers] = useState<[user: string, response: AskPatientResponse][]>([]);
 
     const iconStyle: React.CSSProperties = { padding: 10, width: 100, height: 90,  color: "#465f8b" };
 
@@ -59,6 +60,39 @@ const Chat = () => {
                 }
             };
             const result = await chatApi(request);
+            setAnswers([...answers, [question, result]]);
+        } catch (e) {
+            setError(e);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const makePatientApiRequest = async (patientCode: string, question: string) => {
+        lastQuestionRef.current = question;
+
+        error && setError(undefined);
+        setIsLoading(true);
+        setActiveCitation(undefined);
+        setActiveAnalysisPanelTab(undefined);
+
+        try {
+            const history: ChatTurn[] = answers.map(a => ({ user: a[0], bot: a[1].answer }));
+            const history_patient: ChatPatientTurn[] = answers.map(a => ({ patientcode: a[0], bot: a[1].answer }));
+            const request: ChatPatientRequest = {
+                history: [...history, { user: question, bot: undefined }],
+                history_patient: [...history_patient, { patientcode: patientCode, bot: undefined }],
+                approach: Approaches.ReadRetrieveRead,
+                overrides: {
+                    promptTemplate: promptTemplate.length === 0 ? undefined : promptTemplate,
+                    excludeCategory: excludeCategory.length === 0 ? undefined : excludeCategory,
+                    top: retrieveCount,
+                    semanticRanker: useSemanticRanker,
+                    semanticCaptions: useSemanticCaptions,
+                    suggestFollowupQuestions: useSuggestFollowupQuestions
+                }
+            };
+            const result = await chatPatientApi(request);
             setAnswers([...answers, [question, result]]);
         } catch (e) {
             setError(e);
@@ -136,10 +170,17 @@ const Chat = () => {
                 <div className={styles.chatContainer}>
                     {!lastQuestionRef.current ? (
                         <div className={styles.chatEmptyState}>
-                            <img src={stethoscope} alt="stethoscope" style={iconStyle}  />
-                            <h1 className={styles.chatEmptyStateTitle}>AI Medical Assistant</h1>
-                            <h2 className={styles.chatEmptyStateSubtitle}>例えば こんなふうに質問してください</h2>
-                            <ExampleList onExampleClicked={onExampleClicked} />
+                            <img src={quill} alt="stethoscope" style={iconStyle}  />
+                            <h1 className={styles.chatEmptyStateTitle}>定型文書作成システム</h1>
+                            <h2 className={styles.chatEmptyStateSubtitle}>どの文書を作成しますか？</h2>
+                            <div className={styles.chatInput}>
+                                <PatientCodeInput
+                                    clearOnSend
+                                    placeholder="Type a new question (e.g. how to prevent chronic disease?)"
+                                    disabled={isLoading}
+                            />
+                            <DocumentExampleList onExampleClicked={onExampleClicked} />
+                    </div>
                         </div>
                     ) : (
                         <div className={styles.chatMessageStream}>
@@ -179,15 +220,6 @@ const Chat = () => {
                             <div ref={chatMessageStreamEnd} />
                         </div>
                     )}
-
-                    <div className={styles.chatInput}>
-                        <QuestionInput
-                            clearOnSend
-                            placeholder="Type a new question (e.g. how to prevent chronic disease?)"
-                            disabled={isLoading}
-                            onSend={question => makeApiRequest(question)}
-                        />
-                    </div>
                 </div>
 
                 {answers.length > 0 && activeAnalysisPanelTab && (
@@ -253,4 +285,4 @@ const Chat = () => {
     );
 };
 
-export default Chat;
+export default Document;

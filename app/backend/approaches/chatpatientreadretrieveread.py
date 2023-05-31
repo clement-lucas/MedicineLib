@@ -54,9 +54,24 @@ Search query:
         exclude_category = overrides.get("exclude_category") or None
         filter = "category ne '{}'".format(exclude_category.replace("'", "''")) if exclude_category else None
 
-        # STEP 1: Generate an optimized keyword search query based on the chat history and the last question
+        # ユーザーの入力した質問内容を取得する
         question = history[-1]["user"];
+
+        # 質問内容に期間が含まれていたら、期間を取得する
+        # TODO : 期間を取得する処理を実装する
+
+        # ユーザーの入力した患者コードを取得する
         patient_code = history_patient_code[-1]["patientcode"];
+
+        # 患者番号に紐づく患者情報を取得する
+        # TODO: 患者情報を取得する処理を実装する
+
+        # SQL Server に接続する
+        # SQL Server から患者情報を取得する
+        # SQL Server から患者情報を取得する処理を実装する
+        
+                
+        # STEP 1: Generate an optimized keyword search query based on the chat history and the last question
         prompt = self.query_prompt_template.format(chat_history=self.get_chat_history_as_text(history, include_last_turn=False), question=question)
         completion = openai.Completion.create(
             engine=self.gpt_deployment, 

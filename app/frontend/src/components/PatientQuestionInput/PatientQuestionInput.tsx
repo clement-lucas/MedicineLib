@@ -11,6 +11,8 @@ interface Props {
     clearOnSend?: boolean;
 }
 
+// TODO PatientCodeInput.tsx との共通化
+
 export const PatientQuestionInput = ({ onSend, disabled, placeholder, clearOnSend }: Props) => {
     const [patientCode, setPatientCode] = useState<string>("");
     const [question, setQuestion] = useState<string>("");
