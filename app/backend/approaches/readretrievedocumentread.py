@@ -122,7 +122,7 @@ Thought: {agent_scratchpad}"""
         # SQL Server から患者情報を取得する
         cursor.execute("""SELECT TOP (1000) 
             CONVERT(VARCHAR,[Date],111) + ':' + [Record] AS Record
-            FROM [dbo].[MedicalRecord] WHERE PatientCode = ?""", patient_code)
+            FROM [dbo].[MedicalRecord] WHERE IsDeleted = 0 AND PatientCode = ?""", patient_code)
         #cursor.execute('SELECT Name FROM Patient WHERE PatientCode = ?', patient_code)
         rows = cursor.fetchall() 
         records = ""
@@ -132,10 +132,16 @@ Thought: {agent_scratchpad}"""
         print(records)
 
 #        follow_up_questions_prompt = self.follow_up_questions_prompt_content if overrides.get("suggest_followup_questions") else ""
+#        以下のカルテデータからHL7規格に沿った{format_name}を json 形式で出力してください。
+#         回答の最後に、データの日付を[yyyy/mm/dd]の形式で記載してください。
+#        紹介状は、人間に対する手紙のような部分と、HL7規格に沿ったXMLデータの部分にわかれています。
+
         format = """
         あなたは医師です。
-        以下のカルテデータからHL7規格に沿った{format_name}を書いてください。
-        At the end of the response, give the date of the data used in the format [yyyy/mm/dd].
+        以下のカルテデータにて書かれた人を違う医者に引き継ぐ必要があります。
+        以下のカルテデータにて書かれた人を他の医師に引継ぎのための紹介状を書いてください。
+        宛先の医師名は（宛先の医師名）とします。
+        ただし、作成される文章は1000文字以内とします。
 
         カルテデータ:
         {sources}"""
@@ -144,16 +150,13 @@ Thought: {agent_scratchpad}"""
         #prompt = records.join("\nAnswer the following question from the text above in Japanese.\n\nQuestion:\n" + question + "\n\nAnswer:\n<|im_end|>")
         # STEP 3: Generate a contextual and content specific answer using the search results and chat history
         completion = openai.Completion.create(
-            engine=self.chatgpt_deployment, 
+            engine="davinci", 
             prompt=prompt, 
             temperature=overrides.get("temperature") or 0.7, 
             max_tokens=1024, 
             n=1,
             stop=None)
         
-        print("endend")
-        print(completion)
-        print("endendss")
         print(completion.choices[0].text)
         return {"data_points": "test results", "answer": completion.choices[0].text, "thoughts": f"Searched for:<br>q test<br><br>Prompt:<br>" + prompt.replace('\n', '<br>')}
 

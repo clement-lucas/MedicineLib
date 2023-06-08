@@ -12,6 +12,7 @@ from approaches.readdecomposeask import ReadDecomposeAsk
 from approaches.chatreadretrieveread import ChatReadRetrieveReadApproach
 from approaches.chatpatientreadretrieveread import ChatPatientReadRetrieveReadApproach
 from approaches.readretrievedocumentread import ReadRetrieveDocumentReadApproach
+from approaches.getpatient import GetPatientApproach
 from azure.storage.blob import BlobServiceClient
 
 # Replace these with your own values, either in environment variables or directly here
@@ -71,6 +72,10 @@ chat_approaches = {
 
 chat_patient_approaches = {
     "rrr": ChatPatientReadRetrieveReadApproach(search_client, AZURE_OPENAI_CHATGPT_DEPLOYMENT, AZURE_OPENAI_GPT_DEPLOYMENT, KB_FIELDS_SOURCEPAGE, KB_FIELDS_CONTENT)
+}
+
+get_patient_approaches = {
+    "rrr": GetPatientApproach(KB_FIELDS_SOURCEPAGE, KB_FIELDS_CONTENT)
 }
 
 app = Flask(__name__)
@@ -145,6 +150,20 @@ def chat_patient():
         return jsonify(r)
     except Exception as e:
         logging.exception("Exception in /chat_patient")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/get_patient", methods=["POST"])
+def get_patient():
+    ensure_openai_token()
+#    approach = request.json["approach"]
+    try:
+        impl = get_patient_approaches.get("rrr")
+        if not impl:
+            return jsonify({"error": "unknown approach"}), 400
+        r = impl.run(request.json["patient_code"])
+        return jsonify(r)
+    except Exception as e:
+        logging.exception("Exception in /get_patient_name")
         return jsonify({"error": str(e)}), 500
 
 def ensure_openai_token():

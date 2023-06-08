@@ -77,7 +77,7 @@ Search query:
         # SQL Server から患者情報を取得する
         cursor.execute("""SELECT TOP (1000) 
             CONVERT(VARCHAR,[Date],111) + ':' + [Record] AS Record
-            FROM [dbo].[MedicalRecord] WHERE PatientCode = ?""", patient_code)
+            FROM [dbo].[MedicalRecord] WHERE IsDeleted = 0 AND PatientCode = ?""", patient_code)
         #cursor.execute('SELECT Name FROM Patient WHERE PatientCode = ?', patient_code)
         rows = cursor.fetchall() 
         records = ""

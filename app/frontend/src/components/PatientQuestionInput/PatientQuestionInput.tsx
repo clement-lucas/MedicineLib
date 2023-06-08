@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Stack, TextField, Label } from "@fluentui/react";
 import {Send28Filled, Search24Filled} from "@fluentui/react-icons";
+import { getPatientApi, GetPatientResponse, GetPatientRequest } from "../../api";
 
 import styles from "./PatientQuestionInput.module.css";
 
 interface Props {
     onSend: (patientCode: string, question: string) => void;
+    onPatientCodeChanged: (patientCode: string) => void;
     disabled: boolean;
     placeholder?: string;
     clearOnSend?: boolean;
@@ -13,16 +15,33 @@ interface Props {
 
 // TODO PatientCodeInput.tsx との共通化
 
-export const PatientQuestionInput = ({ onSend, disabled, placeholder, clearOnSend }: Props) => {
+export const PatientQuestionInput = ({ onSend, onPatientCodeChanged, disabled, placeholder, clearOnSend }: Props) => {
     const [patientCode, setPatientCode] = useState<string>("");
     const [question, setQuestion] = useState<string>("");
+    const [name, setName] = useState<string>("");
 
+    const makeApiRequest = async (patientCode: string) => {
+        setName("");
+        try {
+            const request: GetPatientRequest = {
+                patient_code: patientCode,
+            };
+            const result = await getPatientApi(request);
+            setName(result.name)
+        } catch (e) {
+            setName("-");
+        } finally {
+        }
+    };
+    
     const enterPatientCode = () => {
         if (disabled || !patientCode.trim()) {
             return;
         }
 
-        // TODO 患者名検索
+        // 患者名検索
+        makeApiRequest(patientCode);
+        onPatientCodeChanged(patientCode);
     };
 
     const onPatientCodeEnterPress = (ev: React.KeyboardEvent<Element>) => {
@@ -38,6 +57,12 @@ export const PatientQuestionInput = ({ onSend, disabled, placeholder, clearOnSen
         } else if (newValue.length <= 1000) {
             setPatientCode(newValue);
         }
+    };
+
+    const onBlue = () => {
+        // 患者名検索
+        makeApiRequest(patientCode);
+        onPatientCodeChanged(patientCode);
     };
 
     const enterPatientCodeDisabled = disabled || !patientCode.trim();
@@ -88,6 +113,7 @@ export const PatientQuestionInput = ({ onSend, disabled, placeholder, clearOnSen
                         value={patientCode}
                         onChange={onPatientCodeChange}
                         onKeyDown={onPatientCodeEnterPress}
+                        onBlur={onBlue}
                     />
                     <div className={styles.patientCodeInputButtonsContainer}>
                         <div
@@ -100,7 +126,7 @@ export const PatientQuestionInput = ({ onSend, disabled, placeholder, clearOnSen
                     </div>
                 </Stack>
                 <Label>　患者名：</Label>
-                <Label>鈴木 ヨシ子</Label>
+                <Label>{name}</Label>
             </Stack>
             <Stack horizontal className={styles.patientQuestionInputContainer}>
                 <TextField

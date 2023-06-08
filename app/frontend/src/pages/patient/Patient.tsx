@@ -34,6 +34,7 @@ const Patient = () => {
     const [selectedAnswer, setSelectedAnswer] = useState<number>(0);
     const [answers, setAnswers] = useState<[user: string, response: AskResponse][]>([]);
     //const [answers, setAnswers] = useState<[user: string, response: AskPatientResponse][]>([]);
+    const [patientCode, setPatientCode] = useState<string>("");
 
     const iconStyle: React.CSSProperties = { padding: 10, width: 100, height: 90,  color: "#465f8b" };
 
@@ -136,7 +137,7 @@ const Patient = () => {
     };
 
     const onExampleClicked = (example: string) => {
-        makeApiRequest(example);
+        makePatientApiRequest(patientCode, example)
     };
 
     const onShowCitation = (citation: string, index: number) => {
@@ -216,6 +217,7 @@ const Patient = () => {
                     <div className={styles.chatInput}>
                         <PatientQuestionInput
                             clearOnSend
+                            onPatientCodeChanged={x => (setPatientCode(x))}
                             placeholder="Type a new question (e.g. how to prevent chronic disease?)"
                             disabled={isLoading}
                             onSend={(patientCode, question) => makePatientApiRequest(patientCode, question)}

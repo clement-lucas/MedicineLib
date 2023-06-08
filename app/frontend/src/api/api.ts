@@ -1,4 +1,4 @@
-import { AskRequest, DocumentRequest, AskPatientRequest, AskResponse, ChatRequest, ChatPatientRequest } from "./models";
+import { AskRequest, DocumentRequest, GetPatientRequest, GetPatientResponse, AskPatientRequest, AskResponse, ChatRequest, ChatPatientRequest } from "./models";
 
 export async function askApi(options: AskRequest): Promise<AskResponse> {
     const response = await fetch("/ask", {
@@ -147,6 +147,25 @@ export async function chatPatientApi(options: ChatPatientRequest): Promise<AskRe
     });
 
     const parsedResponse: AskResponse = await response.json();
+    if (response.status > 299 || !response.ok) {
+        throw Error(parsedResponse.error || "Unknown error");
+    }
+
+    return parsedResponse;
+}
+
+export async function getPatientApi(options: GetPatientRequest): Promise<GetPatientResponse> {
+    const response = await fetch("/get_patient", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            patient_code: options.patient_code,
+        })
+    });
+
+    const parsedResponse: GetPatientResponse = await response.json();
     if (response.status > 299 || !response.ok) {
         throw Error(parsedResponse.error || "Unknown error");
     }

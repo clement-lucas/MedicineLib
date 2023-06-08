@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Stack, TextField, Label } from "@fluentui/react";
 import { Search24Filled } from "@fluentui/react-icons";
+import { getPatientApi, GetPatientResponse, GetPatientRequest } from "../../api";
 
 import styles from "./PatientCodeInput.module.css";
 
@@ -15,12 +16,26 @@ export const PatientCodeInput = ({ onPatientCodeChanged, disabled, placeholder, 
     const [patientCode, setPatientCode] = useState<string>("");
     const [name, setName] = useState<string>("");
 
+    const makeApiRequest = async (patientCode: string) => {
+        setName("");
+        try {
+            const request: GetPatientRequest = {
+                patient_code: patientCode,
+            };
+            const result = await getPatientApi(request);
+            setName(result.name)
+        } catch (e) {
+            setName("-");
+        } finally {
+        }
+    };
+    
     const enterPatientCode = () => {
         if (disabled || !patientCode.trim()) {
             return;
         }
-        // TODO 患者名検索
-        setName("鈴木 ヨシ子")
+        // 患者名検索
+        makeApiRequest(patientCode);
         onPatientCodeChanged(patientCode);
     };
 
@@ -40,8 +55,8 @@ export const PatientCodeInput = ({ onPatientCodeChanged, disabled, placeholder, 
     };
 
     const onBlue = () => {
-        // TODO 患者名検索
-        setName("鈴木 ヨシ子")
+        // 患者名検索
+        makeApiRequest(patientCode);
         onPatientCodeChanged(patientCode);
     };
 

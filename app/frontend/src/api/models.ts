@@ -65,3 +65,12 @@ export type ChatPatientRequest = {
     approach: Approaches;
     overrides?: AskRequestOverrides;
 };
+
+export type GetPatientRequest = {
+    patient_code: string;
+};
+
+export type GetPatientResponse = {
+    name: string;
+    error?: string;
+};
