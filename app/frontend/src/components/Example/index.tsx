@@ -1,4 +1,4 @@
 export * from "./Example";
 export * from "./ExampleList";
 export * from "./PatientExampleList";
-export * from "./DocumentExampleList";
+export * from "./DocumentList";

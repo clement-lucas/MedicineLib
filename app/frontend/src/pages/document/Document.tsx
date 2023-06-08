@@ -1,44 +1,40 @@
-import { useRef, useState, useEffect } from "react";
-import { Checkbox, Panel, DefaultButton, TextField, SpinButton, Stack } from "@fluentui/react";
-import quill from "../../assets/quill.svg";
+import { useRef, useState } from "react";
+import { Checkbox, ChoiceGroup, IChoiceGroupOption, Panel, DefaultButton, Spinner, TextField, SpinButton } from "@fluentui/react";
 
 import styles from "./Document.module.css";
 
-import { chatApi, chatPatientApi, Approaches, AskResponse, ChatRequest, ChatTurn, ChatPatientRequest, ChatPatientTurn  } from "../../api";
-import { Answer, AnswerError, AnswerLoading } from "../../components/Answer";
-import { DocumentExampleList } from "../../components/Example";
-import { UserChatMessage } from "../../components/UserChatMessage";
+import { documentApi, Approaches, AskResponse, DocumentRequest } from "../../api";
+import { Answer, AnswerError } from "../../components/Answer";
+import { DocumentList } from "../../components/Example";
 import { AnalysisPanel, AnalysisPanelTabs } from "../../components/AnalysisPanel";
-import { SettingsButton } from "../../components/SettingsButton";
-import { ClearChatButton } from "../../components/ClearChatButton";
+import { SettingsButton } from "../../components/SettingsButton/SettingsButton";
+import quill from "../../assets/quill.svg";
 import { PatientCodeInput } from "../../components/PatientCodeInput/PatientCodeInput";
 
 const Document = () => {
     const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false);
+    const [approach, setApproach] = useState<Approaches>(Approaches.RetrieveThenRead);
     const [promptTemplate, setPromptTemplate] = useState<string>("");
+    const [promptTemplatePrefix, setPromptTemplatePrefix] = useState<string>("");
+    const [promptTemplateSuffix, setPromptTemplateSuffix] = useState<string>("");
     const [retrieveCount, setRetrieveCount] = useState<number>(3);
     const [useSemanticRanker, setUseSemanticRanker] = useState<boolean>(true);
     const [useSemanticCaptions, setUseSemanticCaptions] = useState<boolean>(false);
     const [excludeCategory, setExcludeCategory] = useState<string>("");
-    const [useSuggestFollowupQuestions, setUseSuggestFollowupQuestions] = useState<boolean>(false);
+    const [patientCode, setPatientCode] = useState<string>("");
 
     const lastQuestionRef = useRef<string>("");
-    const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<unknown>();
+    const [answer, setAnswer] = useState<AskResponse>();
 
     const [activeCitation, setActiveCitation] = useState<string>();
     const [activeAnalysisPanelTab, setActiveAnalysisPanelTab] = useState<AnalysisPanelTabs | undefined>(undefined);
-
-    const [selectedAnswer, setSelectedAnswer] = useState<number>(0);
-    const [answers, setAnswers] = useState<[user: string, response: AskResponse][]>([]);
-    //const [answers, setAnswers] = useState<[user: string, response: AskPatientResponse][]>([]);
-
     const iconStyle: React.CSSProperties = { padding: 10, width: 100, height: 90,  color: "#465f8b" };
 
-    const makeApiRequest = async (question: string) => {
-        lastQuestionRef.current = question;
+    const makeApiRequest = async (documentName: string) => {
+        lastQuestionRef.current = documentName;
 
         error && setError(undefined);
         setIsLoading(true);
@@ -46,77 +42,45 @@ const Document = () => {
         setActiveAnalysisPanelTab(undefined);
 
         try {
-            const history: ChatTurn[] = answers.map(a => ({ user: a[0], bot: a[1].answer }));
-            const request: ChatRequest = {
-                history: [...history, { user: question, bot: undefined }],
+            const request: DocumentRequest = {
+                documentName: documentName,
+                patientCode: patientCode,
                 approach: Approaches.ReadRetrieveRead,
                 overrides: {
                     promptTemplate: promptTemplate.length === 0 ? undefined : promptTemplate,
                     excludeCategory: excludeCategory.length === 0 ? undefined : excludeCategory,
                     top: retrieveCount,
                     semanticRanker: useSemanticRanker,
-                    semanticCaptions: useSemanticCaptions,
-                    suggestFollowupQuestions: useSuggestFollowupQuestions
+                    semanticCaptions: useSemanticCaptions
                 }
             };
-            const result = await chatApi(request);
-            setAnswers([...answers, [question, result]]);
+            const result = await documentApi(request);
+            setAnswer(result);
         } catch (e) {
             setError(e);
         } finally {
             setIsLoading(false);
         }
     };
-
-    const makePatientApiRequest = async (patientCode: string, question: string) => {
-        lastQuestionRef.current = question;
-
-        error && setError(undefined);
-        setIsLoading(true);
-        setActiveCitation(undefined);
-        setActiveAnalysisPanelTab(undefined);
-
-        try {
-            const history: ChatTurn[] = answers.map(a => ({ user: a[0], bot: a[1].answer }));
-            const history_patient: ChatPatientTurn[] = answers.map(a => ({ patientcode: a[0], bot: a[1].answer }));
-            const request: ChatPatientRequest = {
-                history: [...history, { user: question, bot: undefined }],
-                history_patient: [...history_patient, { patientcode: patientCode, bot: undefined }],
-                approach: Approaches.ReadRetrieveRead,
-                overrides: {
-                    promptTemplate: promptTemplate.length === 0 ? undefined : promptTemplate,
-                    excludeCategory: excludeCategory.length === 0 ? undefined : excludeCategory,
-                    top: retrieveCount,
-                    semanticRanker: useSemanticRanker,
-                    semanticCaptions: useSemanticCaptions,
-                    suggestFollowupQuestions: useSuggestFollowupQuestions
-                }
-            };
-            const result = await chatPatientApi(request);
-            setAnswers([...answers, [question, result]]);
-        } catch (e) {
-            setError(e);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const clearChat = () => {
-        lastQuestionRef.current = "";
-        error && setError(undefined);
-        setActiveCitation(undefined);
-        setActiveAnalysisPanelTab(undefined);
-        setAnswers([]);
-    };
-
-    useEffect(() => chatMessageStreamEnd.current?.scrollIntoView({ behavior: "smooth" }), [isLoading]);
 
     const onPromptTemplateChange = (_ev?: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>, newValue?: string) => {
         setPromptTemplate(newValue || "");
     };
 
+    const onPromptTemplatePrefixChange = (_ev?: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>, newValue?: string) => {
+        setPromptTemplatePrefix(newValue || "");
+    };
+
+    const onPromptTemplateSuffixChange = (_ev?: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>, newValue?: string) => {
+        setPromptTemplateSuffix(newValue || "");
+    };
+
     const onRetrieveCountChange = (_ev?: React.SyntheticEvent<HTMLElement, Event>, newValue?: string) => {
         setRetrieveCount(parseInt(newValue || "3"));
+    };
+
+    const onApproachChange = (_ev?: React.FormEvent<HTMLElement | HTMLInputElement>, option?: IChoiceGroupOption) => {
+        setApproach((option?.key as Approaches) || Approaches.RetrieveThenRead);
     };
 
     const onUseSemanticRankerChange = (_ev?: React.FormEvent<HTMLElement | HTMLInputElement>, checked?: boolean) => {
@@ -131,158 +95,165 @@ const Document = () => {
         setExcludeCategory(newValue || "");
     };
 
-    const onUseSuggestFollowupQuestionsChange = (_ev?: React.FormEvent<HTMLElement | HTMLInputElement>, checked?: boolean) => {
-        setUseSuggestFollowupQuestions(!!checked);
-    };
-
     const onExampleClicked = (example: string) => {
         makeApiRequest(example);
     };
 
-    const onShowCitation = (citation: string, index: number) => {
-        if (activeCitation === citation && activeAnalysisPanelTab === AnalysisPanelTabs.CitationTab && selectedAnswer === index) {
+    const onShowCitation = (citation: string) => {
+        if (activeCitation === citation && activeAnalysisPanelTab === AnalysisPanelTabs.CitationTab) {
             setActiveAnalysisPanelTab(undefined);
         } else {
             setActiveCitation(citation);
             setActiveAnalysisPanelTab(AnalysisPanelTabs.CitationTab);
         }
-
-        setSelectedAnswer(index);
     };
 
-    const onToggleTab = (tab: AnalysisPanelTabs, index: number) => {
-        if (activeAnalysisPanelTab === tab && selectedAnswer === index) {
+    const onToggleTab = (tab: AnalysisPanelTabs) => {
+        if (activeAnalysisPanelTab === tab) {
             setActiveAnalysisPanelTab(undefined);
         } else {
             setActiveAnalysisPanelTab(tab);
         }
-
-        setSelectedAnswer(index);
     };
 
-    return (
-        <div className={styles.container}>
-            <div className={styles.commandsContainer}>
-                <ClearChatButton className={styles.commandButton} onClick={clearChat} disabled={!lastQuestionRef.current || isLoading} />
-                <SettingsButton className={styles.commandButton} onClick={() => setIsConfigPanelOpen(!isConfigPanelOpen)} />
-            </div>
-            <div className={styles.chatRoot}>
-                <div className={styles.chatContainer}>
-                    {!lastQuestionRef.current ? (
-                        <div className={styles.chatEmptyState}>
-                            <img src={quill} alt="stethoscope" style={iconStyle}  />
-                            <h1 className={styles.chatEmptyStateTitle}>定型文書作成システム</h1>
-                            <h2 className={styles.chatEmptyStateSubtitle}>どの文書を作成しますか？</h2>
-                            <div className={styles.chatInput}>
-                                <PatientCodeInput
-                                    clearOnSend
-                                    placeholder="Type a new question (e.g. how to prevent chronic disease?)"
-                                    disabled={isLoading}
-                            />
-                            <DocumentExampleList onExampleClicked={onExampleClicked} />
-                    </div>
-                        </div>
-                    ) : (
-                        <div className={styles.chatMessageStream}>
-                            {answers.map((answer, index) => (
-                                <div key={index}>
-                                    <UserChatMessage message={answer[0]} />
-                                    <div className={styles.chatMessageGpt}>
-                                        <Answer
-                                            key={index}
-                                            answer={answer[1]}
-                                            isSelected={selectedAnswer === index && activeAnalysisPanelTab !== undefined}
-                                            onCitationClicked={c => onShowCitation(c, index)}
-                                            onThoughtProcessClicked={() => onToggleTab(AnalysisPanelTabs.ThoughtProcessTab, index)}
-                                            onSupportingContentClicked={() => onToggleTab(AnalysisPanelTabs.SupportingContentTab, index)}
-                                            onFollowupQuestionClicked={q => makeApiRequest(q)}
-                                            showFollowupQuestions={useSuggestFollowupQuestions && answers.length - 1 === index}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-                            {isLoading && (
-                                <>
-                                    <UserChatMessage message={lastQuestionRef.current} />
-                                    <div className={styles.chatMessageGptMinWidth}>
-                                        <AnswerLoading />
-                                    </div>
-                                </>
-                            )}
-                            {error ? (
-                                <>
-                                    <UserChatMessage message={lastQuestionRef.current} />
-                                    <div className={styles.chatMessageGptMinWidth}>
-                                        <AnswerError error={error.toString()} onRetry={() => makeApiRequest(lastQuestionRef.current)} />
-                                    </div>
-                                </>
-                            ) : null}
-                            <div ref={chatMessageStreamEnd} />
-                        </div>
-                    )}
-                </div>
+    const approaches: IChoiceGroupOption[] = [
+        {
+            key: Approaches.RetrieveThenRead,
+            text: "Retrieve-Then-Read"
+        },
+        {
+            key: Approaches.ReadRetrieveRead,
+            text: "Read-Retrieve-Read"
+        },
+        {
+            key: Approaches.ReadDecomposeAsk,
+            text: "Read-Decompose-Ask"
+        }
+    ];
 
-                {answers.length > 0 && activeAnalysisPanelTab && (
+
+    return (
+        <div className={styles.documentContainer}>
+            <div className={styles.documentTopSection}>
+                {/* <SettingsButton className={styles.settingsButton} onClick={() => setIsConfigPanelOpen(!isConfigPanelOpen)} /> */}
+                <img src={quill} alt="stethoscope" style={iconStyle}  />
+                             <h1 className={styles.chatEmptyStateTitle}>定型文書作成システム</h1>
+                             <h2 className={styles.chatEmptyStateSubtitle}>どの文書を作成しますか？</h2>
+                             {/* <h2 className={styles.chatEmptyStateSubtitle}>{patientCode}</h2> */}
+                             <div className={styles.documentInput}>
+                                 <PatientCodeInput
+                                     onPatientCodeChanged={x => (setPatientCode(x))}
+                                     clearOnSend
+                                     placeholder="Type a new question (e.g. how to prevent chronic disease?)"
+                                     disabled={isLoading}
+                             />
+                            </div>
+            </div>
+            <div className={styles.documentBottomSection}>
+                {isLoading && <Spinner label="Generating answer" />}
+                {!lastQuestionRef.current && <DocumentList onExampleClicked={onExampleClicked} />}
+                {!isLoading && answer && !error && (
+                    <div className={styles.documentAnswerContainer}>
+                        <Answer
+                            answer={answer}
+                            onCitationClicked={x => onShowCitation(x)}
+                            onThoughtProcessClicked={() => onToggleTab(AnalysisPanelTabs.ThoughtProcessTab)}
+                            onSupportingContentClicked={() => onToggleTab(AnalysisPanelTabs.SupportingContentTab)}
+                        />
+                    </div>
+                )}
+                {error ? (
+                    <div className={styles.documentAnswerContainer}>
+                        <AnswerError error={error.toString()} onRetry={() => makeApiRequest(lastQuestionRef.current)} />
+                    </div>
+                ) : null}
+                {activeAnalysisPanelTab && answer && (
                     <AnalysisPanel
-                        className={styles.chatAnalysisPanel}
+                        className={styles.documentAnalysisPanel}
                         activeCitation={activeCitation}
-                        onActiveTabChanged={x => onToggleTab(x, selectedAnswer)}
-                        citationHeight="810px"
-                        answer={answers[selectedAnswer][1]}
+                        onActiveTabChanged={x => onToggleTab(x)}
+                        citationHeight="600px"
+                        answer={answer}
                         activeTab={activeAnalysisPanelTab}
                     />
                 )}
+            </div>
 
-                <Panel
-                    headerText="Configure answer generation"
-                    isOpen={isConfigPanelOpen}
-                    isBlocking={false}
-                    onDismiss={() => setIsConfigPanelOpen(false)}
-                    closeButtonAriaLabel="Close"
-                    onRenderFooterContent={() => <DefaultButton onClick={() => setIsConfigPanelOpen(false)}>Close</DefaultButton>}
-                    isFooterAtBottom={true}
-                >
+            <Panel
+                headerText="Configure answer generation"
+                isOpen={isConfigPanelOpen}
+                isBlocking={false}
+                onDismiss={() => setIsConfigPanelOpen(false)}
+                closeButtonAriaLabel="Close"
+                onRenderFooterContent={() => <DefaultButton onClick={() => setIsConfigPanelOpen(false)}>Close</DefaultButton>}
+                isFooterAtBottom={true}
+            >
+                <ChoiceGroup
+                    className={styles.documentSettingsSeparator}
+                    label="Approach"
+                    options={approaches}
+                    defaultSelectedKey={approach}
+                    onChange={onApproachChange}
+                />
+
+                {(approach === Approaches.RetrieveThenRead || approach === Approaches.ReadDecomposeAsk) && (
                     <TextField
-                        className={styles.chatSettingsSeparator}
+                        className={styles.documentSettingsSeparator}
                         defaultValue={promptTemplate}
                         label="Override prompt template"
                         multiline
                         autoAdjustHeight
                         onChange={onPromptTemplateChange}
                     />
+                )}
 
-                    <SpinButton
-                        className={styles.chatSettingsSeparator}
-                        label="Retrieve this many documents from search:"
-                        min={1}
-                        max={50}
-                        defaultValue={retrieveCount.toString()}
-                        onChange={onRetrieveCountChange}
-                    />
-                    <TextField className={styles.chatSettingsSeparator} label="Exclude category" onChange={onExcludeCategoryChanged} />
-                    <Checkbox
-                        className={styles.chatSettingsSeparator}
-                        checked={useSemanticRanker}
-                        label="Use semantic ranker for retrieval"
-                        onChange={onUseSemanticRankerChange}
-                    />
-                    <Checkbox
-                        className={styles.chatSettingsSeparator}
-                        checked={useSemanticCaptions}
-                        label="Use query-contextual summaries instead of whole documents"
-                        onChange={onUseSemanticCaptionsChange}
-                        disabled={!useSemanticRanker}
-                    />
-                    <Checkbox
-                        className={styles.chatSettingsSeparator}
-                        checked={useSuggestFollowupQuestions}
-                        label="Suggest follow-up questions"
-                        onChange={onUseSuggestFollowupQuestionsChange}
-                    />
-                </Panel>
-            </div>
+                {approach === Approaches.ReadRetrieveRead && (
+                    <>
+                        <TextField
+                            className={styles.documentSettingsSeparator}
+                            defaultValue={promptTemplatePrefix}
+                            label="Override prompt prefix template"
+                            multiline
+                            autoAdjustHeight
+                            onChange={onPromptTemplatePrefixChange}
+                        />
+                        <TextField
+                            className={styles.documentSettingsSeparator}
+                            defaultValue={promptTemplateSuffix}
+                            label="Override prompt suffix template"
+                            multiline
+                            autoAdjustHeight
+                            onChange={onPromptTemplateSuffixChange}
+                        />
+                    </>
+                )}
+
+                <SpinButton
+                    className={styles.documentSettingsSeparator}
+                    label="Retrieve this many documents from search:"
+                    min={1}
+                    max={50}
+                    defaultValue={retrieveCount.toString()}
+                    onChange={onRetrieveCountChange}
+                />
+                <TextField className={styles.documentSettingsSeparator} label="Exclude category" onChange={onExcludeCategoryChanged} />
+                <Checkbox
+                    className={styles.documentSettingsSeparator}
+                    checked={useSemanticRanker}
+                    label="Use semantic ranker for retrieval"
+                    onChange={onUseSemanticRankerChange}
+                />
+                <Checkbox
+                    className={styles.documentSettingsSeparator}
+                    checked={useSemanticCaptions}
+                    label="Use query-contextual summaries instead of whole documents"
+                    onChange={onUseSemanticCaptionsChange}
+                    disabled={!useSemanticRanker}
+                />
+            </Panel>
         </div>
     );
 };
 
 export default Document;
+

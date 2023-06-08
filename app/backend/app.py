@@ -11,6 +11,7 @@ from approaches.readretrieveread import ReadRetrieveReadApproach
 from approaches.readdecomposeask import ReadDecomposeAsk
 from approaches.chatreadretrieveread import ChatReadRetrieveReadApproach
 from approaches.chatpatientreadretrieveread import ChatPatientReadRetrieveReadApproach
+from approaches.readretrievedocumentread import ReadRetrieveDocumentReadApproach
 from azure.storage.blob import BlobServiceClient
 
 # Replace these with your own values, either in environment variables or directly here
@@ -60,6 +61,10 @@ ask_approaches = {
     "rda": ReadDecomposeAsk(search_client, AZURE_OPENAI_GPT_DEPLOYMENT, KB_FIELDS_SOURCEPAGE, KB_FIELDS_CONTENT)
 }
 
+document_approaches = {
+    "rrr": ReadRetrieveDocumentReadApproach(search_client, AZURE_OPENAI_CHATGPT_DEPLOYMENT, AZURE_OPENAI_GPT_DEPLOYMENT, KB_FIELDS_SOURCEPAGE, KB_FIELDS_CONTENT)
+}
+
 chat_approaches = {
     "rrr": ChatReadRetrieveReadApproach(search_client, AZURE_OPENAI_CHATGPT_DEPLOYMENT, AZURE_OPENAI_GPT_DEPLOYMENT, KB_FIELDS_SOURCEPAGE, KB_FIELDS_CONTENT)
 }
@@ -100,6 +105,20 @@ def ask():
         logging.exception("Exception in /ask")
         return jsonify({"error": str(e)}), 500
     
+@app.route("/document", methods=["POST"])
+def document():
+    ensure_openai_token()
+    approach = request.json["approach"]
+    try:
+        impl = document_approaches.get(approach)
+        if not impl:
+            return jsonify({"error": "unknown approach"}), 400
+        r = impl.run(request.json["document_name"], request.json["patient_code"], request.json.get("overrides") or {})
+        return jsonify(r)
+    except Exception as e:
+        logging.exception("Exception in /document")
+        return jsonify({"error": str(e)}), 500
+    
 @app.route("/chat", methods=["POST"])
 def chat():
     ensure_openai_token()
@@ -125,7 +144,7 @@ def chat_patient():
         r = impl.run(request.json["history"], request.json["history_patient"], request.json.get("overrides") or {})
         return jsonify(r)
     except Exception as e:
-        logging.exception("Exception in /chat")
+        logging.exception("Exception in /chat_patient")
         return jsonify({"error": str(e)}), 500
 
 def ensure_openai_token():

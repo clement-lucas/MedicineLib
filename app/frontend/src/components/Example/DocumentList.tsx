@@ -19,7 +19,7 @@ interface Props {
     onExampleClicked: (value: string) => void;
 }
 
-export const DocumentExampleList = ({ onExampleClicked }: Props) => {
+export const DocumentList = ({ onExampleClicked }: Props) => {
     return (
         <ul className={styles.examplesNavList}>
             {EXAMPLES.map((x, i) => (

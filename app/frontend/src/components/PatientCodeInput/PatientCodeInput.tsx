@@ -1,28 +1,31 @@
 import { useState } from "react";
 import { Stack, TextField, Label } from "@fluentui/react";
-import {Send28Filled, Search24Filled} from "@fluentui/react-icons";
+import { Search24Filled } from "@fluentui/react-icons";
 
 import styles from "./PatientCodeInput.module.css";
 
 interface Props {
+    onPatientCodeChanged: (patientCode: string) => void;
     disabled: boolean;
     placeholder?: string;
     clearOnSend?: boolean;
 }
 
-export const PatientCodeInput = ({ disabled, placeholder, clearOnSend }: Props) => {
+export const PatientCodeInput = ({ onPatientCodeChanged, disabled, placeholder, clearOnSend }: Props) => {
     const [patientCode, setPatientCode] = useState<string>("");
+    const [name, setName] = useState<string>("");
 
     const enterPatientCode = () => {
         if (disabled || !patientCode.trim()) {
             return;
         }
-
         // TODO 患者名検索
+        setName("鈴木 ヨシ子")
+        onPatientCodeChanged(patientCode);
     };
 
     const onPatientCodeEnterPress = (ev: React.KeyboardEvent<Element>) => {
-        if (ev.key === "Enter" && !ev.shiftKey) {
+        if ((ev.key === "Enter" || ev.key === "Tab") && !ev.shiftKey) {
             ev.preventDefault();
             enterPatientCode();
         }
@@ -34,6 +37,12 @@ export const PatientCodeInput = ({ disabled, placeholder, clearOnSend }: Props) 
         } else if (newValue.length <= 1000) {
             setPatientCode(newValue);
         }
+    };
+
+    const onBlue = () => {
+        // TODO 患者名検索
+        setName("鈴木 ヨシ子")
+        onPatientCodeChanged(patientCode);
     };
 
     const enterPatientCodeDisabled = disabled || !patientCode.trim();
@@ -50,7 +59,8 @@ export const PatientCodeInput = ({ disabled, placeholder, clearOnSend }: Props) 
                     value={patientCode}
                     onChange={onPatientCodeChange}
                     onKeyDown={onPatientCodeEnterPress}
-                />
+                    onBlur={onBlue}
+                    />
                 <div className={styles.patientCodeInputButtonsContainer}>
                     <div
                         className={`${styles.patientCodeInputSendButton} ${enterPatientCodeDisabled ? styles.patientCodeInputSendButtonDisabled : ""}`}
@@ -62,7 +72,7 @@ export const PatientCodeInput = ({ disabled, placeholder, clearOnSend }: Props) 
                 </div>
             </Stack>
             <Label>　患者名：</Label>
-            <Label>鈴木 ヨシ子</Label>
+            <Label>{name}</Label>
         </Stack>
 );
 };
