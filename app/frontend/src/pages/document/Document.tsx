@@ -7,7 +7,6 @@ import { documentApi, Approaches, AskResponse, DocumentRequest } from "../../api
 import { Answer, AnswerError } from "../../components/Answer";
 import { DocumentList } from "../../components/Example";
 import { AnalysisPanel, AnalysisPanelTabs } from "../../components/AnalysisPanel";
-import { SettingsButton } from "../../components/SettingsButton/SettingsButton";
 import quill from "../../assets/quill.svg";
 import { PatientCodeInput } from "../../components/PatientCodeInput/PatientCodeInput";
 
@@ -148,10 +147,10 @@ const Document = () => {
                                      disabled={isLoading}
                              />
                             </div>
+                            <DocumentList onExampleClicked={onExampleClicked} />
             </div>
             <div className={styles.documentBottomSection}>
                 {isLoading && <Spinner label="Generating answer" />}
-                {!lastQuestionRef.current && <DocumentList onExampleClicked={onExampleClicked} />}
                 {!isLoading && answer && !error && (
                     <div className={styles.documentAnswerContainer}>
                         <Answer

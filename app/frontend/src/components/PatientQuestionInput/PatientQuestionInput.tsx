@@ -72,10 +72,6 @@ export const PatientQuestionInput = ({ onSend, onPatientCodeChanged, disabled, p
             return;
         }
 
-        alert(patientCode);
-        alert(question);
-
-
         onSend(patientCode, question);
 
         if (clearOnSend) {

@@ -10,8 +10,8 @@ const EXAMPLES: ExampleModel[] = [
     { text: "紹介状", 
       value: "紹介状"
     },
-    { text: "入院継続に際してのお知らせ", 
-      value: "入院継続に際してのお知らせ" 
+    { text: "入院経過", 
+      value: "入院経過" 
     }
 ];
 
