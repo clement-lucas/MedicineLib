@@ -1,3 +1,4 @@
+import os
 import openai
 import pyodbc
 from azure.search.documents import SearchClient
@@ -41,6 +42,10 @@ Question:
 
 Search query:
 """
+    SQL_SERVER = os.environ.get("SQL_SERVER") or "no_setting_SQL_SERVER_on_env"
+    SQL_DATABASE = os.environ.get("SQL_DATABASE") or "MedicalRecordDB"
+    SQL_USER = os.environ.get("SQL_USER") or "medical-record-admin"
+    SQL_PASSWORD = os.environ.get("SQL_PASSWORD") or "no_setting_SQL_PASSWORD_on_env"
 
     def __init__(self, search_client: SearchClient, chatgpt_deployment: str, gpt_deployment: str, sourcepage_field: str, content_field: str):
         self.search_client = search_client
@@ -65,14 +70,7 @@ Search query:
         patient_code = history_patient_code[-1]["patientcode"]
 
         # SQL Server に接続する
-        # TODO 接続情報の外部化
-        password = '' 
-        server = 'tcp:medical-record.database.windows.net' 
-        #server = 'tcp:sql-server-xj7iy6ezhkbzc.database.windows.net' 
-        database = 'MedicalRecordDB' 
-        username = 'medical-record-admin' 
-        # ENCRYPT defaults to yes starting in ODBC Driver 18. It's good to always specify ENCRYPT=yes on the client side to avoid MITM attacks.
-        cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+server+';DATABASE='+database+';ENCRYPT=yes;UID='+username+';PWD='+ password)
+        cnxn = pyodbc.connect(os.environ.get("SQL_CONNECTION_STRING"))
         cursor = cnxn.cursor()
 
         # SQL Server から患者情報を取得する

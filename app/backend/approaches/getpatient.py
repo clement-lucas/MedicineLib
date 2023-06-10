@@ -1,3 +1,4 @@
+import os
 import pyodbc
 from approaches.approach import Approach
 from text import nonewlines
@@ -18,14 +19,7 @@ class GetPatientApproach(Approach):
         print(patient_code)
 
         # SQL Server に接続する
-        # TODO 接続情報の外部化
-        password = '' 
-        server = 'tcp:medical-record.database.windows.net' 
-        #server = 'tcp:sql-server-xj7iy6ezhkbzc.database.windows.net' 
-        database = 'MedicalRecordDB' 
-        username = 'medical-record-admin' 
-        # ENCRYPT defaults to yes starting in ODBC Driver 18. It's good to always specify ENCRYPT=yes on the client side to avoid MITM attacks.
-        cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+server+';DATABASE='+database+';ENCRYPT=yes;UID='+username+';PWD='+ password)
+        cnxn = pyodbc.connect(os.environ.get("SQL_CONNECTION_STRING"))
         cursor = cnxn.cursor()
 
         # SQL Server から患者情報を取得する
