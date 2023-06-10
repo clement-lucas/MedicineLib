@@ -20,12 +20,6 @@ INSERT INTO [dbo].[Patient]
            ,GETDATE()
            ,0)
            ,
-            ('0000-000003'
-           ,N'田中 次郎'
-           ,GETDATE()
-           ,GETDATE()
-           ,0)
-           ,
             ('0000-000004'
            ,N'鈴木 美香'
            ,GETDATE()

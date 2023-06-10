@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { Checkbox, Panel, DefaultButton, TextField, SpinButton, Stack } from "@fluentui/react";
+import { Checkbox, Panel, DefaultButton, TextField, SpinButton, Label, Stack } from "@fluentui/react";
 import patient from "../../assets/patient.svg";
 
 import styles from "./Patient.module.css";
@@ -35,39 +35,9 @@ const Patient = () => {
     const [answers, setAnswers] = useState<[user: string, response: AskResponse][]>([]);
     //const [answers, setAnswers] = useState<[user: string, response: AskPatientResponse][]>([]);
     const [patientCode, setPatientCode] = useState<string>("");
+    const [patientName, setPatientName] = useState<string>("");
 
     const iconStyle: React.CSSProperties = { padding: 10, width: 100, height: 90,  color: "#465f8b" };
-
-    const makeApiRequest = async (question: string) => {
-        lastQuestionRef.current = question;
-
-        error && setError(undefined);
-        setIsLoading(true);
-        setActiveCitation(undefined);
-        setActiveAnalysisPanelTab(undefined);
-
-        try {
-            const history: ChatTurn[] = answers.map(a => ({ user: a[0], bot: a[1].answer }));
-            const request: ChatRequest = {
-                history: [...history, { user: question, bot: undefined }],
-                approach: Approaches.ReadRetrieveRead,
-                overrides: {
-                    promptTemplate: promptTemplate.length === 0 ? undefined : promptTemplate,
-                    excludeCategory: excludeCategory.length === 0 ? undefined : excludeCategory,
-                    top: retrieveCount,
-                    semanticRanker: useSemanticRanker,
-                    semanticCaptions: useSemanticCaptions,
-                    suggestFollowupQuestions: useSuggestFollowupQuestions
-                }
-            };
-            const result = await chatApi(request);
-            setAnswers([...answers, [question, result]]);
-        } catch (e) {
-            setError(e);
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const makePatientApiRequest = async (patientCode: string, question: string) => {
         lastQuestionRef.current = question;
@@ -175,9 +145,24 @@ const Patient = () => {
                             <h1 className={styles.chatEmptyStateTitle}>電子カルテ情報検索システム</h1>
                             <h2 className={styles.chatEmptyStateSubtitle}>例えば こんなふうに質問してください</h2>
                             <PatientExampleList onExampleClicked={onExampleClicked} />
+                            <div className={styles.chatInput}>
+                                <PatientQuestionInput
+                                    clearOnSend
+                                    onPatientCodeChanged={x => (setPatientCode(x))}
+                                    onPatientNameChanged={x => (setPatientName(x))}
+                                    placeholder="Type a new question (e.g. how to prevent chronic disease?)"
+                                    disabled={isLoading}
+                                    onSend={(patientCode, question) => makePatientApiRequest(patientCode, question)}
+                                />
+                            </div>
                         </div>
                     ) : (
                         <div className={styles.chatMessageStream}>
+                            <Stack horizontal>
+                                <Label>{patientCode}</Label>
+                                {/* <Label>:</Label>
+                                <Label>{patientName}</Label> */}
+                            </Stack>
                             {answers.map((answer, index) => (
                                 <div key={index}>
                                     <UserChatMessage message={answer[0]} />
@@ -189,7 +174,7 @@ const Patient = () => {
                                             onCitationClicked={c => onShowCitation(c, index)}
                                             onThoughtProcessClicked={() => onToggleTab(AnalysisPanelTabs.ThoughtProcessTab, index)}
                                             onSupportingContentClicked={() => onToggleTab(AnalysisPanelTabs.SupportingContentTab, index)}
-                                            onFollowupQuestionClicked={q => makeApiRequest(q)}
+                                            onFollowupQuestionClicked={q => makePatientApiRequest(patientCode, q)}
                                             showFollowupQuestions={useSuggestFollowupQuestions && answers.length - 1 === index}
                                         />
                                     </div>
@@ -207,22 +192,13 @@ const Patient = () => {
                                 <>
                                     <UserChatMessage message={lastQuestionRef.current} />
                                     <div className={styles.chatMessageGptMinWidth}>
-                                        <AnswerError error={error.toString()} onRetry={() => makeApiRequest(lastQuestionRef.current)} />
+                                        <AnswerError error={error.toString()} onRetry={() => makePatientApiRequest(patientCode, lastQuestionRef.current)} />
                                     </div>
                                 </>
                             ) : null}
                             <div ref={chatMessageStreamEnd} />
                         </div>
                     )}
-                    <div className={styles.chatInput}>
-                        <PatientQuestionInput
-                            clearOnSend
-                            onPatientCodeChanged={x => (setPatientCode(x))}
-                            placeholder="Type a new question (e.g. how to prevent chronic disease?)"
-                            disabled={isLoading}
-                            onSend={(patientCode, question) => makePatientApiRequest(patientCode, question)}
-                        />
-                    </div>
                 </div>
 
                 {answers.length > 0 && activeAnalysisPanelTab && (

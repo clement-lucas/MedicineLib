@@ -19,10 +19,11 @@ class GetPatientApproach(Approach):
 
         # SQL Server に接続する
         # TODO 接続情報の外部化
+        password = '' 
         server = 'tcp:medical-record.database.windows.net' 
+        #server = 'tcp:sql-server-xj7iy6ezhkbzc.database.windows.net' 
         database = 'MedicalRecordDB' 
         username = 'medical-record-admin' 
-        password = '' 
         # ENCRYPT defaults to yes starting in ODBC Driver 18. It's good to always specify ENCRYPT=yes on the client side to avoid MITM attacks.
         cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+server+';DATABASE='+database+';ENCRYPT=yes;UID='+username+';PWD='+ password)
         cursor = cnxn.cursor()

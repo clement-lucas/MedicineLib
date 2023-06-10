@@ -26,6 +26,11 @@ Sources:
     Try not to repeat questions that have already been asked.
     Only generate questions and do not generate any text before or after the questions, such as 'Next Questions'"""
 
+    # 以下は、これまでの会話の履歴と、医学雑誌や研究に関するナレッジベースで検索して回答する必要があるユーザーからの新しい質問です。
+    # 会話と新しい質問に基づいて検索クエリを生成します。
+    # 引用されたソースファイル名とドキュメント名(info.txt や doc.pdf など)を検索クエリ用語に含めないでください。
+    # 検索クエリ用語の [] または <<>> 内にテキストを含めないでください。
+    # 質問が英語でない場合は、検索クエリを生成する前に質問を英語に翻訳します。
     query_prompt_template = """Below is a history of the conversation so far, and a new question asked by the user that needs to be answered by searching in a knowledge base about medical journal and research.
     Generate a search query based on the conversation and the new question. 
     Do not include cited source filenames and document names e.g info.txt or doc.pdf in the search query terms.
@@ -64,6 +69,8 @@ Search query:
             n=1, 
             stop=["\n"])
         q = completion.choices[0].text
+
+        print(q)
 
         # STEP 2: Retrieve relevant documents from the search index with the GPT optimized query
         if overrides.get("semantic_ranker"):

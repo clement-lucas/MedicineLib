@@ -111,10 +111,11 @@ Thought: {agent_scratchpad}"""
 
         # SQL Server に接続する
         # TODO 接続情報の外部化
+        password = '' 
         server = 'tcp:medical-record.database.windows.net' 
+        #server = 'tcp:sql-server-xj7iy6ezhkbzc.database.windows.net' 
         database = 'MedicalRecordDB' 
         username = 'medical-record-admin' 
-        password = '' 
         # ENCRYPT defaults to yes starting in ODBC Driver 18. It's good to always specify ENCRYPT=yes on the client side to avoid MITM attacks.
         cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+server+';DATABASE='+database+';ENCRYPT=yes;UID='+username+';PWD='+ password)
         cursor = cnxn.cursor()
@@ -136,15 +137,31 @@ Thought: {agent_scratchpad}"""
 #         回答の最後に、データの日付を[yyyy/mm/dd]の形式で記載してください。
 #        紹介状は、人間に対する手紙のような部分と、HL7規格に沿ったXMLデータの部分にわかれています。
 
-        format = """
-        あなたは医師です。
-        以下のカルテデータにて書かれた人を違う医者に引き継ぐ必要があります。
-        以下のカルテデータにて書かれた人を他の医師に引継ぎのための紹介状を書いてください。
-        宛先の医師名は（宛先の医師名）とします。
-        ただし、作成される文章は1000文字以内とします。
+        format = ""
+        if document_name == "紹介状":
+            format = """
+あなたは医師です。
+以下のカルテデータにて書かれた人を違う医者に引き継ぐ必要があります。
+以下のカルテデータにて書かれた人を他の医師に引継ぎのための紹介状を書いてください。
+宛先の医師名は（宛先の医師名）とします。
+ただし、作成される文章は1000文字以内とします。
+カルテデータ:
+{sources}"""
+        elif document_name == "入院経過":
+            format = """
+あなたは医師です。
+以下のカルテデータから入院経過を抽出してください。
+ただし、作成される文章は1000文字以内とします。
+カルテデータ:
+{sources}"""
+        elif document_name == "看護記録":
+            format = """
+あなたは医師です。
+以下のカルテデータから看護記録を作成してください。
+ただし、作成される文章は1000文字以内とします。
+カルテデータ:
+{sources}"""
 
-        カルテデータ:
-        {sources}"""
         prompt = format.format(format_name=document_name, sources=records)
         print(prompt)
         #prompt = records.join("\nAnswer the following question from the text above in Japanese.\n\nQuestion:\n" + question + "\n\nAnswer:\n<|im_end|>")

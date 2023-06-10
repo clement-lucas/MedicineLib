@@ -8,6 +8,7 @@ import styles from "./PatientQuestionInput.module.css";
 interface Props {
     onSend: (patientCode: string, question: string) => void;
     onPatientCodeChanged: (patientCode: string) => void;
+    onPatientNameChanged: (patientName: string) => void;
     disabled: boolean;
     placeholder?: string;
     clearOnSend?: boolean;
@@ -15,7 +16,7 @@ interface Props {
 
 // TODO PatientCodeInput.tsx との共通化
 
-export const PatientQuestionInput = ({ onSend, onPatientCodeChanged, disabled, placeholder, clearOnSend }: Props) => {
+export const PatientQuestionInput = ({ onSend, onPatientCodeChanged, onPatientNameChanged, disabled, placeholder, clearOnSend }: Props) => {
     const [patientCode, setPatientCode] = useState<string>("");
     const [question, setQuestion] = useState<string>("");
     const [name, setName] = useState<string>("");
@@ -31,6 +32,7 @@ export const PatientQuestionInput = ({ onSend, onPatientCodeChanged, disabled, p
         } catch (e) {
             setName("-");
         } finally {
+            onPatientNameChanged(name);
         }
     };
     

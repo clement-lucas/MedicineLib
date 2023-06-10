@@ -66,10 +66,11 @@ Search query:
 
         # SQL Server に接続する
         # TODO 接続情報の外部化
+        password = '' 
         server = 'tcp:medical-record.database.windows.net' 
+        #server = 'tcp:sql-server-xj7iy6ezhkbzc.database.windows.net' 
         database = 'MedicalRecordDB' 
         username = 'medical-record-admin' 
-        password = '' 
         # ENCRYPT defaults to yes starting in ODBC Driver 18. It's good to always specify ENCRYPT=yes on the client side to avoid MITM attacks.
         cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+server+';DATABASE='+database+';ENCRYPT=yes;UID='+username+';PWD='+ password)
         cursor = cnxn.cursor()
@@ -90,7 +91,7 @@ Search query:
         prompt = self.prompt_prefix.format(injected_prompt="", sources=records, chat_history=self.get_chat_history_as_text(history), follow_up_questions_prompt=follow_up_questions_prompt)
         print(prompt)
         #prompt = records.join("\nAnswer the following question from the text above in Japanese.\n\nQuestion:\n" + question + "\n\nAnswer:\n<|im_end|>")
-        # STEP 3: Generate a contextual and content specific answer using the search results and chat history
+        # Generate a contextual and content specific answer using the search results and chat history
         completion = openai.Completion.create(
             engine=self.chatgpt_deployment, 
             prompt=prompt, 
@@ -98,55 +99,6 @@ Search query:
             max_tokens=1024, 
             n=1, 
             stop=["<|im_end|>", "<|im_start|>"])
-
-        # # STEP 1: Generate an optimized keyword search query based on the chat history and the last question
-        # prompt = self.query_prompt_template.format(chat_history=self.get_chat_history_as_text(history, include_last_turn=False), question=question)
-        # completion = openai.Completion.create(
-        #     engine=self.gpt_deployment, 
-        #     prompt=prompt, 
-        #     temperature=0.0, 
-        #     max_tokens=32, 
-        #     n=1, 
-        #     stop=["\n"])
-        # q = completion.choices[0].text
-
-        # # STEP 2: Retrieve relevant documents from the search index with the GPT optimized query
-        # if overrides.get("semantic_ranker"):
-        #     r = self.search_client.search(q, 
-        #                                   filter=filter,
-        #                                   query_type=QueryType.SEMANTIC, 
-        #                                   query_language="en-us", 
-        #                                   query_speller="lexicon", 
-        #                                   semantic_configuration_name="default", 
-        #                                   top=top, 
-        #                                   query_caption="extractive|highlight-false" if use_semantic_captions else None)
-        # else:
-        #     r = self.search_client.search(q, filter=filter, top=top)
-        # if use_semantic_captions:
-        #     results = [doc[self.sourcepage_field] + ": " + nonewlines(" . ".join([c.text for c in doc['@search.captions']])) for doc in r]
-        # else:
-        #     results = [doc[self.sourcepage_field] + ": " + nonewlines(doc[self.content_field]) for doc in r]
-        # content = "\n".join(results)
-
-        # follow_up_questions_prompt = self.follow_up_questions_prompt_content if overrides.get("suggest_followup_questions") else ""
-        
-        # # Allow client to replace the entire prompt, or to inject into the exiting prompt using >>>
-        # prompt_override = overrides.get("prompt_template")
-        # if prompt_override is None:
-        #     prompt = self.prompt_prefix.format(injected_prompt="", sources=content, chat_history=self.get_chat_history_as_text(history), follow_up_questions_prompt=follow_up_questions_prompt)
-        # elif prompt_override.startswith(">>>"):
-        #     prompt = self.prompt_prefix.format(injected_prompt=prompt_override[3:] + "\n", sources=content, chat_history=self.get_chat_history_as_text(history), follow_up_questions_prompt=follow_up_questions_prompt)
-        # else:
-        #     prompt = prompt_override.format(sources=content, chat_history=self.get_chat_history_as_text(history), follow_up_questions_prompt=follow_up_questions_prompt)
-
-        # # STEP 3: Generate a contextual and content specific answer using the search results and chat history
-        # completion = openai.Completion.create(
-        #     engine=self.chatgpt_deployment, 
-        #     prompt=prompt, 
-        #     temperature=overrides.get("temperature") or 0.7, 
-        #     max_tokens=1024, 
-        #     n=1, 
-        #     stop=["<|im_end|>", "<|im_start|>"])
 
         print(completion.choices[0].text)
         return {"data_points": "test results", "answer": completion.choices[0].text, "thoughts": f"Searched for:<br>q test<br><br>Prompt:<br>" + prompt.replace('\n', '<br>')}
