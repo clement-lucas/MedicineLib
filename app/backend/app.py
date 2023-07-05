@@ -12,7 +12,9 @@ from approaches.readdecomposeask import ReadDecomposeAsk
 from approaches.chatreadretrieveread import ChatReadRetrieveReadApproach
 from approaches.chatpatientreadretrieveread import ChatPatientReadRetrieveReadApproach
 from approaches.readretrievedocumentread import ReadRetrieveDocumentReadApproach
+from approaches.readretrievedischargeread import ReadRetrieveDischargeReadApproach
 from approaches.getpatient import GetPatientApproach
+from approaches.getpatientold import GetPatientOldApproach
 from azure.storage.blob import BlobServiceClient
 
 # Replace these with your own values, either in environment variables or directly here
@@ -66,6 +68,10 @@ document_approaches = {
     "rrr": ReadRetrieveDocumentReadApproach(search_client, AZURE_OPENAI_CHATGPT_DEPLOYMENT, AZURE_OPENAI_GPT_DEPLOYMENT, KB_FIELDS_SOURCEPAGE, KB_FIELDS_CONTENT)
 }
 
+discharge_approaches = {
+    "rrr": ReadRetrieveDischargeReadApproach(search_client, AZURE_OPENAI_CHATGPT_DEPLOYMENT, AZURE_OPENAI_GPT_DEPLOYMENT, KB_FIELDS_SOURCEPAGE, KB_FIELDS_CONTENT)
+}
+
 chat_approaches = {
     "rrr": ChatReadRetrieveReadApproach(search_client, AZURE_OPENAI_CHATGPT_DEPLOYMENT, AZURE_OPENAI_GPT_DEPLOYMENT, KB_FIELDS_SOURCEPAGE, KB_FIELDS_CONTENT)
 }
@@ -76,6 +82,10 @@ chat_patient_approaches = {
 
 get_patient_approaches = {
     "rrr": GetPatientApproach(KB_FIELDS_SOURCEPAGE, KB_FIELDS_CONTENT)
+}
+
+get_patient_old_approaches = {
+    "rrr": GetPatientOldApproach(KB_FIELDS_SOURCEPAGE, KB_FIELDS_CONTENT)
 }
 
 app = Flask(__name__)
@@ -124,6 +134,20 @@ def document():
         logging.exception("Exception in /document")
         return jsonify({"error": str(e)}), 500
     
+@app.route("/discharge", methods=["POST"])
+def discharge():
+    ensure_openai_token()
+    approach = request.json["approach"]
+    try:
+        impl = discharge_approaches.get(approach)
+        if not impl:
+            return jsonify({"error": "unknown approach"}), 400
+        r = impl.run(request.json["document_name"], request.json["patient_code"], request.json.get("overrides") or {})
+        return jsonify(r)
+    except Exception as e:
+        logging.exception("Exception in /discharge")
+        return jsonify({"error": str(e)}), 500
+    
 @app.route("/chat", methods=["POST"])
 def chat():
     ensure_openai_token()
@@ -163,7 +187,21 @@ def get_patient():
         r = impl.run(request.json["patient_code"])
         return jsonify(r)
     except Exception as e:
-        logging.exception("Exception in /get_patient_name")
+        logging.exception("Exception in /get_patient")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/get_patient_old", methods=["POST"])
+def get_patient_old():
+    ensure_openai_token()
+#    approach = request.json["approach"]
+    try:
+        impl = get_patient_old_approaches.get("rrr")
+        if not impl:
+            return jsonify({"error": "unknown approach"}), 400
+        r = impl.run(request.json["patient_code"])
+        return jsonify(r)
+    except Exception as e:
+        logging.exception("Exception in /get_patient_old")
         return jsonify({"error": str(e)}), 500
 
 def ensure_openai_token():

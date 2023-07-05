@@ -8,7 +8,9 @@ from text import nonewlines
 # second if more data is needed use the requested "tool" to retrieve it. The last call to GPT answers the actual question.
 # This is inspired by the MKRL paper[1] and applied here using the implementation in Langchain.
 # [1] E. Karpas, et al. arXiv:2205.00445
-class GetPatientApproach(Approach):
+
+# このクラスは旧体系の患者情報取得クラスです。
+class GetPatientOldApproach(Approach):
     def __init__(self, sourcepage_field: str, content_field: str):
         self.sourcepage_field = sourcepage_field
         self.content_field = content_field
@@ -19,14 +21,15 @@ class GetPatientApproach(Approach):
         print(patient_code)
 
         # SQL Server に接続する
-        sql_connection_string = os.environ.get('SQL_CONNECTION_STRING')
-        cnxn = pyodbc.connect(sql_connection_string)
+        cnxn = pyodbc.connect(os.environ.get("SQL_CONNECTION_STRING"))
         cursor = cnxn.cursor()
 
         # SQL Server から患者情報を取得する
-        cursor.execute("""SELECT PID_NAME
-            FROM [dbo].[EXTBDH1] WHERE ACTIVE_FLG = 1 AND PID = ?""", patient_code)
+        cursor.execute("""SELECT Name
+            FROM [dbo].[Patient] WHERE IsDeleted = 0 AND PatientCode = ?""", patient_code)
+        #cursor.execute('SELECT Name FROM Patient WHERE PatientCode = ?', patient_code)
         rows = cursor.fetchall() 
+        records = ""
         for row in rows:
             return {"name":row[0]}
         return {"name":"患者情報が見つかりませんでした。"}

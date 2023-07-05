@@ -21,12 +21,17 @@ const Layout = () => {
                             </li>
                             <li>
                                 <NavLink to="/do" className={({ isActive }) => (isActive ? styles.headerNavPageLinkActive : styles.headerNavPageLink)}>
-                                    定型文書を作成する／ 
+                                    定型文書を作成する／
                                 </NavLink>
                             </li>
                             <li>
                                 <NavLink to="/pa" className={({ isActive }) => (isActive ? styles.headerNavPageLinkActive : styles.headerNavPageLink)}>
-                                    患者番号を指定して質問する
+                                    患者番号を指定して質問する／
+                                </NavLink>
+                            </li>
+                            <li>
+                                <NavLink to="/discharge" className={({ isActive }) => (isActive ? styles.headerNavPageLinkActive : styles.headerNavPageLink)}>
+                                    退院時サマリを作成する
                                 </NavLink>
                             </li>
                             {/* <li className={styles.headerNavLeftMargin}>
