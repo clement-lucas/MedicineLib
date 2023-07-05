@@ -11,6 +11,7 @@ import OneShot from "./pages/oneshot/OneShot";
 import Chat from "./pages/chat/Chat";
 import Document from "./pages/document/Document";
 import Patient from "./pages/patient/Patient";
+import Discharge from "./pages/discharge/Discharge";
 
 initializeIcons();
 
@@ -23,6 +24,7 @@ export default function App() {
                     <Route path="do" element={<Document />} />
                     <Route path="pa" element={<Patient />} />
                     <Route path="qa" element={<OneShot />} />
+                    <Route path="discharge" element={<Discharge />} />
                     <Route path="*" element={<NoPage />} />
                 </Route>
             </Routes>

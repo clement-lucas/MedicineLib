@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Stack, TextField, Label } from "@fluentui/react";
 import { Search24Filled } from "@fluentui/react-icons";
-import { getPatientApi, GetPatientResponse, GetPatientRequest } from "../../api";
+import { getPatientOldApi, GetPatientRequest } from "../../api";
 
-import styles from "./PatientCodeInput.module.css";
+import styles from "./PatientCodeInputOld.module.css";
 
 interface Props {
     onPatientCodeChanged: (patientCode: string) => void;
@@ -12,7 +12,7 @@ interface Props {
     clearOnSend?: boolean;
 }
 
-export const PatientCodeInput = ({ onPatientCodeChanged, disabled, placeholder, clearOnSend }: Props) => {
+export const PatientCodeInputOld = ({ onPatientCodeChanged, disabled, placeholder, clearOnSend }: Props) => {
     const [patientCode, setPatientCode] = useState<string>("");
     const [name, setName] = useState<string>("");
 
@@ -22,7 +22,7 @@ export const PatientCodeInput = ({ onPatientCodeChanged, disabled, placeholder, 
             const request: GetPatientRequest = {
                 patient_code: patientCode,
             };
-            const result = await getPatientApi(request);
+            const result = await getPatientOldApi(request);
             setName(result.name)
         } catch (e) {
             setName("-");
@@ -67,7 +67,7 @@ export const PatientCodeInput = ({ onPatientCodeChanged, disabled, placeholder, 
             <Stack horizontal className={styles.patientCodeInputContainer}>
                 <TextField
                     className={styles.patientCodeInputTextArea}
-                    placeholder="患者番号を入力してください (e.g. 8888012345)"
+                    placeholder="患者番号を入力してください (e.g. 0000-123456)"
                     multiline={false}
                     resizable={false}
                     borderless

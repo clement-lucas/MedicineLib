@@ -1,24 +1,27 @@
-# 医師記録 parser class.
+# 看護記録 parser class.
 # XML 形式の文字列を受け取り、SOAP の内容を抽出する。
 
-import xml.etree.ElementTree as ET
-import SOAPParser as SP
+from parser.soapparser import SOAPParser as SP
 
-class DoctorsNoteParser(SP.SOAPParser):
+class NursesNoteParser(SP):
 
     def __init__(self, xml):
-        super(DoctorsNoteParser, self).__init__(xml, "FREE")
+        super(NursesNoteParser, self).__init__(xml, "ARTICLE")
 
     # SOAP タグか調べて、インデックスを返却する。
     # SOAP タグでない場合は、SOAPParser.IS_NOT_SOAP を返却する。
     def _is_SOAP(self, tag, text):
-        if tag == "SUBJECTIVE":
+    # tag が SOAP 且つ text が S の場合
+        if tag != "SOAP":
+            return self.IS_NOT_SOAP
+        
+        if text == "S":
             return self._index_S
-        elif tag == "OBJECTIVE":
+        elif text == "O":
             return self._index_O
-        elif tag == "ASSESSMENT":
+        elif text == "A":
             return self._index_A
-        elif tag == "PLAN":
+        elif text == "P":
             return self._index_P
         else:
             return self.IS_NOT_SOAP

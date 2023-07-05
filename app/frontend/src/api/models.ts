@@ -29,6 +29,13 @@ export type DocumentRequest = {
     overrides?: AskRequestOverrides;
 };
 
+export type DischargeRequest = {
+    patientCode: string;
+    documentName: string;
+    approach: Approaches;
+    overrides?: AskRequestOverrides;
+};
+
 export type AskPatientRequest = {
     patientCode: string;
     question: string;

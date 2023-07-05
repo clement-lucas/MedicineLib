@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Stack, TextField, Label } from "@fluentui/react";
 import {Send28Filled, Search24Filled} from "@fluentui/react-icons";
-import { getPatientApi, GetPatientResponse, GetPatientRequest } from "../../api";
+import { getPatientOldApi, GetPatientResponse, GetPatientRequest } from "../../api";
 
 import styles from "./PatientQuestionInput.module.css";
 
@@ -27,7 +27,7 @@ export const PatientQuestionInput = ({ onSend, onPatientCodeChanged, onPatientNa
             const request: GetPatientRequest = {
                 patient_code: patientCode,
             };
-            const result = await getPatientApi(request);
+            const result = await getPatientOldApi(request);
             setName(result.name)
         } catch (e) {
             setName("-");

@@ -1,4 +1,4 @@
-import { AskRequest, DocumentRequest, GetPatientRequest, GetPatientResponse, AskPatientRequest, AskResponse, ChatRequest, ChatPatientRequest } from "./models";
+import { AskRequest, DocumentRequest, DischargeRequest, GetPatientRequest, GetPatientResponse, AskPatientRequest, AskResponse, ChatRequest, ChatPatientRequest } from "./models";
 
 export async function askApi(options: AskRequest): Promise<AskResponse> {
     const response = await fetch("/ask", {
@@ -32,6 +32,37 @@ export async function askApi(options: AskRequest): Promise<AskResponse> {
 
 export async function documentApi(options: DocumentRequest): Promise<AskResponse> {
     const response = await fetch("/document", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            document_name: options.documentName,
+            patient_code: options.patientCode,
+            approach: options.approach,
+            overrides: {
+                semantic_ranker: options.overrides?.semanticRanker,
+                semantic_captions: options.overrides?.semanticCaptions,
+                top: options.overrides?.top,
+                temperature: options.overrides?.temperature,
+                prompt_template: options.overrides?.promptTemplate,
+                prompt_template_prefix: options.overrides?.promptTemplatePrefix,
+                prompt_template_suffix: options.overrides?.promptTemplateSuffix,
+                exclude_category: options.overrides?.excludeCategory
+            }
+        })
+    });
+
+    const parsedResponse: AskResponse = await response.json();
+    if (response.status > 299 || !response.ok) {
+        throw Error(parsedResponse.error || "Unknown error");
+    }
+
+    return parsedResponse;
+}
+
+export async function dischargeApi(options: DischargeRequest): Promise<AskResponse> {
+    const response = await fetch("/discharge", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -156,6 +187,25 @@ export async function chatPatientApi(options: ChatPatientRequest): Promise<AskRe
 
 export async function getPatientApi(options: GetPatientRequest): Promise<GetPatientResponse> {
     const response = await fetch("/get_patient", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            patient_code: options.patient_code,
+        })
+    });
+
+    const parsedResponse: GetPatientResponse = await response.json();
+    if (response.status > 299 || !response.ok) {
+        throw Error(parsedResponse.error || "Unknown error");
+    }
+
+    return parsedResponse;
+}
+
+export async function getPatientOldApi(options: GetPatientRequest): Promise<GetPatientResponse> {
+    const response = await fetch("/get_patient_old", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"

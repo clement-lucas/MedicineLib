@@ -1,16 +1,16 @@
 import { useRef, useState } from "react";
 import { Checkbox, ChoiceGroup, IChoiceGroupOption, Panel, DefaultButton, Spinner, TextField, SpinButton } from "@fluentui/react";
 
-import styles from "./Document.module.css";
+import styles from "./Discharge.module.css";
 
-import { documentApi, Approaches, AskResponse, DocumentRequest } from "../../api";
+import { dischargeApi, Approaches, AskResponse, DischargeRequest } from "../../api";
 import { Answer, AnswerError } from "../../components/Answer";
-import { DocumentList } from "../../components/Example";
+import { DischargeList } from "../../components/Example";
 import { AnalysisPanel, AnalysisPanelTabs } from "../../components/AnalysisPanel";
-import quill from "../../assets/quill.svg";
-import { PatientCodeInputOld } from "../../components/PatientCodeInputOld/PatientCodeInputOld";
+import bird from "../../assets/bird.svg";
+import { PatientCodeInput } from "../../components/PatientCodeInput/PatientCodeInput";
 
-const Document = () => {
+const Discharge = () => {
     const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false);
     const [approach, setApproach] = useState<Approaches>(Approaches.RetrieveThenRead);
     const [promptTemplate, setPromptTemplate] = useState<string>("");
@@ -41,7 +41,7 @@ const Document = () => {
         setActiveAnalysisPanelTab(undefined);
 
         try {
-            const request: DocumentRequest = {
+            const request: DischargeRequest = {
                 documentName: documentName,
                 patientCode: patientCode,
                 approach: Approaches.ReadRetrieveRead,
@@ -53,7 +53,7 @@ const Document = () => {
                     semanticCaptions: useSemanticCaptions
                 }
             };
-            const result = await documentApi(request);
+            const result = await dischargeApi(request);
             setAnswer(result);
         } catch (e) {
             setError(e);
@@ -132,27 +132,27 @@ const Document = () => {
 
 
     return (
-        <div className={styles.documentContainer}>
-            <div className={styles.documentTopSection}>
+        <div className={styles.dischargeContainer}>
+            <div className={styles.dischargeTopSection}>
                 {/* <SettingsButton className={styles.settingsButton} onClick={() => setIsConfigPanelOpen(!isConfigPanelOpen)} /> */}
-                <img src={quill} alt="quill" style={iconStyle}  />
-                             <h1 className={styles.chatEmptyStateTitle}>定型文書作成システム</h1>
+                <img src={bird} alt="bird" style={iconStyle}  />
+                             <h1 className={styles.chatEmptyStateTitle}>退院サマリ作成システム</h1>
                              <h2 className={styles.chatEmptyStateSubtitle}>どの文書を作成しますか？</h2>
                              {/* <h2 className={styles.chatEmptyStateSubtitle}>{patientCode}</h2> */}
-                             <div className={styles.documentInput}>
-                                 <PatientCodeInputOld
+                             <div className={styles.dischargeInput}>
+                                 <PatientCodeInput
                                      onPatientCodeChanged={x => (setPatientCode(x))}
                                      clearOnSend
                                      placeholder="Type a new question (e.g. how to prevent chronic disease?)"
                                      disabled={isLoading}
                              />
                             </div>
-                            <DocumentList onExampleClicked={onExampleClicked} />
+                            <DischargeList onExampleClicked={onExampleClicked} />
             </div>
-            <div className={styles.documentBottomSection}>
+            <div className={styles.dischargeBottomSection}>
                 {isLoading && <Spinner label="Generating answer" />}
                 {!isLoading && answer && !error && (
-                    <div className={styles.documentAnswerContainer}>
+                    <div className={styles.dischargeAnswerContainer}>
                         <Answer
                             answer={answer}
                             onCitationClicked={x => onShowCitation(x)}
@@ -162,13 +162,13 @@ const Document = () => {
                     </div>
                 )}
                 {error ? (
-                    <div className={styles.documentAnswerContainer}>
+                    <div className={styles.dischargeAnswerContainer}>
                         <AnswerError error={error.toString()} onRetry={() => makeApiRequest(lastQuestionRef.current)} />
                     </div>
                 ) : null}
                 {activeAnalysisPanelTab && answer && (
                     <AnalysisPanel
-                        className={styles.documentAnalysisPanel}
+                        className={styles.dischargeAnalysisPanel}
                         activeCitation={activeCitation}
                         onActiveTabChanged={x => onToggleTab(x)}
                         citationHeight="600px"
@@ -188,7 +188,7 @@ const Document = () => {
                 isFooterAtBottom={true}
             >
                 <ChoiceGroup
-                    className={styles.documentSettingsSeparator}
+                    className={styles.dischargeSettingsSeparator}
                     label="Approach"
                     options={approaches}
                     defaultSelectedKey={approach}
@@ -197,7 +197,7 @@ const Document = () => {
 
                 {(approach === Approaches.RetrieveThenRead || approach === Approaches.ReadDecomposeAsk) && (
                     <TextField
-                        className={styles.documentSettingsSeparator}
+                        className={styles.dischargeSettingsSeparator}
                         defaultValue={promptTemplate}
                         label="Override prompt template"
                         multiline
@@ -209,7 +209,7 @@ const Document = () => {
                 {approach === Approaches.ReadRetrieveRead && (
                     <>
                         <TextField
-                            className={styles.documentSettingsSeparator}
+                            className={styles.dischargeSettingsSeparator}
                             defaultValue={promptTemplatePrefix}
                             label="Override prompt prefix template"
                             multiline
@@ -217,7 +217,7 @@ const Document = () => {
                             onChange={onPromptTemplatePrefixChange}
                         />
                         <TextField
-                            className={styles.documentSettingsSeparator}
+                            className={styles.dischargeSettingsSeparator}
                             defaultValue={promptTemplateSuffix}
                             label="Override prompt suffix template"
                             multiline
@@ -228,24 +228,24 @@ const Document = () => {
                 )}
 
                 <SpinButton
-                    className={styles.documentSettingsSeparator}
-                    label="Retrieve this many documents from search:"
+                    className={styles.dischargeSettingsSeparator}
+                    label="Retrieve this many discharges from search:"
                     min={1}
                     max={50}
                     defaultValue={retrieveCount.toString()}
                     onChange={onRetrieveCountChange}
                 />
-                <TextField className={styles.documentSettingsSeparator} label="Exclude category" onChange={onExcludeCategoryChanged} />
+                <TextField className={styles.dischargeSettingsSeparator} label="Exclude category" onChange={onExcludeCategoryChanged} />
                 <Checkbox
-                    className={styles.documentSettingsSeparator}
+                    className={styles.dischargeSettingsSeparator}
                     checked={useSemanticRanker}
                     label="Use semantic ranker for retrieval"
                     onChange={onUseSemanticRankerChange}
                 />
                 <Checkbox
-                    className={styles.documentSettingsSeparator}
+                    className={styles.dischargeSettingsSeparator}
                     checked={useSemanticCaptions}
-                    label="Use query-contextual summaries instead of whole documents"
+                    label="Use query-contextual summaries instead of whole discharges"
                     onChange={onUseSemanticCaptionsChange}
                     disabled={!useSemanticRanker}
                 />
@@ -254,5 +254,5 @@ const Document = () => {
     );
 };
 
-export default Document;
+export default Discharge;
 
