@@ -1,144 +1,144 @@
 # 開発環境構築手順（新しく環境を作成する）
 
-1. ターミナルにてプロジェクトルートディレクトリーに移動する。
+1. ターミナルにてプロジェクトルートディレクトリーに移動する。  
 cd <project_root>
 
-2. 以下のコマンドを実行する。
-az login
-az account set -s <AZURE_SUBSCRIPTION_ID>
-AZURE_SUBSCRIPTION_ID には、対象の環境のサブスクリプションIDを入力する。
+2. 以下のコマンドを実行する。  
+az login  
+az account set -s <AZURE_SUBSCRIPTION_ID>  
+AZURE_SUBSCRIPTION_ID には、対象の環境のサブスクリプションIDを入力する。  
+  
+3. 以下のコマンドを実行し、2で指定したサブスクリプションに切り替わっていることを確認する。  
+  
+4. 以下のコマンドを実行する。  
+azd auth login  
+azd env new <env_name>  
+azd env select <env_name>  
+  
+5. 以下のコマンドを実行し、1で切り替えた環境の環境変数（./.azure/<env_name>/.env ファイルの設定内容）が表示されることを確認する。  
+azd env get-values  
+　 別の環境の環境変数が表示されたり、何も表示されなかったりする場合は、ターミナルを再起動し再度上記コマンドを実行して確認する。  
+　 その際、最初にプロジェクトルートフォルダーへ移動する事を忘れないこと（cd <project_root>）  
+  
+6. 以下のコマンドを実行する。  
+azd init (もしも ERROR: environment already initialized to <env_name> というメッセージが出たら無視する)  
+azd provision  
+  
+7. 任意のデータベースを作成する。  
+任意の RDB を作成する。  
+作成したら、 ./ddl/ と ./ddl/sample_data/ 配下にある全ての sql ファイルを実行する。  
+これらの SQL は Azure SQL Database 上で動作確認している。  
+  
+8. データベースの接続文字列を設定する。  
+7のデータベースの接続文字列を設定する。  
+./.azure/<env_name>/.env   
+を開き、  
+SQL_CONNECTION_STRING="<接続文字列>"  
+を追記する。  
+この設定は、 ./app/start.ps1 コマンドの実行によりローカル上でWebサーバー起動した際に参照される。  
+  
+次に、 Azure Portal 上でアプリケーション設定に接続文字列を追加する。  
+  
+【参照】  
+https://learn.microsoft.com/ja-jp/azure/app-service/configure-common?tabs=portal#configure-app-settings  
+  
+この時、[アプリケーション設定]と[接続文字列]の設定カ所が存在するが、前者に対して設定する。  
+  
+名前：SQL_CONNECTION_STRING  
+値：<接続文字列>  
+  
+9. 医療文献を登録用フォルダーに入れる。  
+./data フォルダーに、 ./data_scanned の中身をコピーする。  
+これにより、 azd up 時に pdf の内容が取り込まれる。  
+一度取り込んだら、削除しておくこと。  
+  
+10. 以下のコマンドを実行する。  
+pwsh ./scripts/roles.ps1 （初回のみ）  
+azd up  
+  
+11. 以降、システムに変更を加えた場合のデプロイに際しては、以下のコマンドを実行する。  
+azd up  
+ただし、 Web アプリケーションに対してのみ変更された場合は、以下のコマンドで良い。  
+azd deploy  
+  
 
-3. 以下のコマンドを実行し、2で指定したサブスクリプションに切り替わっていることを確認する。
-
-4. 以下のコマンドを実行する。
-azd auth login
-azd env new <env_name>
-azd env select <env_name>
-
-5. 以下のコマンドを実行し、1で切り替えた環境の環境変数（./.azure/<env_name>/.env ファイルの設定内容）が表示されることを確認する。
-azd env get-values
-　 別の環境の環境変数が表示されたり、何も表示されなかったりする場合は、ターミナルを再起動し再度上記コマンドを実行して確認する。
-　 その際、最初にプロジェクトルートフォルダーへ移動する事を忘れないこと（cd <project_root>）
-
-6. 以下のコマンドを実行する。
-azd init (もしも ERROR: environment already initialized to <env_name> というメッセージが出たら無視する)
-azd provision
-
-7. 任意のデータベースを作成する。
-任意の RDB を作成する。
-作成したら、 ./ddl/ と ./ddl/sample_data/ 配下にある全ての sql ファイルを実行する。
-これらの SQL は Azure SQL Database 上で動作確認している。
-
-8. データベースの接続文字列を設定する。
-7のデータベースの接続文字列を設定する。
-./.azure/<env_name>/.env 
-を開き、
-SQL_CONNECTION_STRING="<接続文字列>"
-を追記する。
-この設定は、 ./app/start.ps1 コマンドの実行によりローカル上でWebサーバー起動した際に参照される。
-
-次に、 Azure Portal 上でアプリケーション設定に接続文字列を追加する。
-
-【参照】
-https://learn.microsoft.com/ja-jp/azure/app-service/configure-common?tabs=portal#configure-app-settings
-
-この時、[アプリケーション設定]と[接続文字列]の設定カ所が存在するが、前者に対して設定する。
-
-名前：SQL_CONNECTION_STRING
-値：<接続文字列>
-
-9. 医療文献を登録用フォルダーに入れる。
-./data フォルダーに、 ./data_scanned の中身をコピーする。
-これにより、 azd up 時に pdf の内容が取り込まれる。
-一度取り込んだら、削除しておくこと。
-
-10. 以下のコマンドを実行する。
-pwsh ./scripts/roles.ps1 （初回のみ）
-azd up
-
-11. 以降、システムに変更を加えた場合のデプロイに際しては、以下のコマンドを実行する。
-azd up
-ただし、 Web アプリケーションに対してのみ変更された場合は、以下のコマンドで良い。
-azd deploy
-
-
-# 開発環境構築手順（既に用意された環境で開発する）
-前提条件：
-2023/05/04 現在、開発環境、デモ環境の２環境が存在する。
-
-環境ごとの <env_name> は以下の通り。
-開発環境の場合：GPTdemo-env
-デモ環境の場合：HealthcareGPTdemo-dev
-
-それぞれの環境の Azure 接続先は以下のファイルに記載してある。
-./.azure/<env_name>/.env
-
-以下の作業を開始する前、それぞれの環境のサブスクリプションやリソースグループに対しての作業者の権限を [Owner] のみ、あるいは [ユーザー アクセス 管理者] のみにしておく。
-
-参照元に追加したい pdf ファイルがある場合、./data/ フォルダー配下に配置する。
-pdf ファイルは暗号化されていない必要がある。
-
-
-1. ターミナルにてプロジェクトルートディレクトリーに移動する。
-cd <project_root>
-
-2. 以下のコマンドを実行する。
-az login
-az account set -s <AZURE_SUBSCRIPTION_ID>
-AZURE_SUBSCRIPTION_ID には、対象の環境のサブスクリプションIDを入力する。
-
-3. 以下のコマンドを実行し、2で指定したサブスクリプションに切り替わっていることを確認する。
-
-4. 以下のコマンドを実行する。
-azd auth login
-azd env select <env_name>
-
-5. 以下のコマンドを実行し、1で切り替えた環境の環境変数（./.azure/<env_name>/.env ファイルの設定内容）が表示されることを確認する。
-azd env get-values
-　 別の環境の環境変数が表示されたり、何も表示されなかったりする場合は、ターミナルを再起動し再度上記コマンドを実行して確認する。
-　 その際、最初にプロジェクトルートフォルダーへ移動する事を忘れないこと（cd <project_root>）
-
-6. 以下のコマンドを実行する。
-pwsh ./scripts/roles.ps1 （初回のみ）
-azd up
-
-7. 以降、システムに変更を加えた場合のデプロイに際しては、以下のコマンドを実行する。
-azd up
-ただし、 Web アプリケーションに対してのみ変更された場合は、以下のコマンドで良い。
-azd deploy
-
+# 開発環境構築手順（既に用意された環境で開発する）  
+前提条件：  
+2023/05/04 現在、開発環境、デモ環境の２環境が存在する。  
+  
+環境ごとの <env_name> は以下の通り。  
+開発環境の場合：GPTdemo-env  
+デモ環境の場合：HealthcareGPTdemo-dev  
+  
+それぞれの環境の Azure 接続先は以下のファイルに記載してある。  
+./.azure/<env_name>/.env  
+  
+以下の作業を開始する前、それぞれの環境のサブスクリプションやリソースグループに対しての作業者の権限を [Owner] のみ、あるいは [ユーザー アクセス 管理者] のみにしておく。  
+  
+参照元に追加したい pdf ファイルがある場合、./data/ フォルダー配下に配置する。  
+pdf ファイルは暗号化されていない必要がある。  
+  
+  
+1. ターミナルにてプロジェクトルートディレクトリーに移動する。  
+cd <project_root>  
+  
+2. 以下のコマンドを実行する。  
+az login  
+az account set -s <AZURE_SUBSCRIPTION_ID>  
+AZURE_SUBSCRIPTION_ID には、対象の環境のサブスクリプションIDを入力する。  
+  
+3. 以下のコマンドを実行し、2で指定したサブスクリプションに切り替わっていることを確認する。  
+  
+4. 以下のコマンドを実行する。  
+azd auth login  
+azd env select <env_name>  
+  
+5. 以下のコマンドを実行し、1で切り替えた環境の環境変数（./.azure/<env_name>/.env ファイルの設定内容）が表示されることを確認する。  
+azd env get-values  
+　 別の環境の環境変数が表示されたり、何も表示されなかったりする場合は、ターミナルを再起動し再度上記コマンドを実行して確認する。  
+　 その際、最初にプロジェクトルートフォルダーへ移動する事を忘れないこと（cd <project_root>）  
+  
+6. 以下のコマンドを実行する。  
+pwsh ./scripts/roles.ps1 （初回のみ）  
+azd up  
+  
+7. 以降、システムに変更を加えた場合のデプロイに際しては、以下のコマンドを実行する。  
+azd up  
+ただし、 Web アプリケーションに対してのみ変更された場合は、以下のコマンドで良い。  
+azd deploy  
+  
 
 # トラブルシューティング
 ## hogehoge.ps1 がロックされていて実行できない旨のエラーが発生
-デプロイ作業中、 hogehoge.ps1 がロックされていて実行できない旨のエラーが発生した場合、power shell から以下のコマンドを実行し、ロックを解除し、再試行する。
-※：hogehoge の部分は適宜置き換わる。
+デプロイ作業中、 hogehoge.ps1 がロックされていて実行できない旨のエラーが発生した場合、power shell から以下のコマンドを実行し、ロックを解除し、再試行する。  
+※：hogehoge の部分は適宜置き換わる。  
 
-PS > Unblock-File -Path <file path>\hogehoge.ps1
+PS > Unblock-File -Path <file path>\hogehoge.ps1  
 
 
 ## RoleAssignmentExists: The role assignment already exists.が発生
-デプロイ作業中、以下のようなエラーメッセージが発生した場合、サブスクリプションやリソースグループに対しての作業者の権限設定が合っていない可能性がある。
+デプロイ作業中、以下のようなエラーメッセージが発生した場合、サブスクリプションやリソースグループに対しての作業者の権限設定が合っていない可能性がある。  
 作業者の権限を [Owner] のみ、あるいは [ユーザー アクセス 管理者] のみにすると解消する可能性がある。
-
+  
 ERROR: deployment failed: error deploying infrastructure: deploying to subscription:
-
-Deployment Error Details:
-RoleAssignmentExists: The role assignment already exists.
-RoleAssignmentExists: The role assignment already exists.
-RoleAssignmentExists: The role assignment already exists.
-RoleAssignmentExists: The role assignment already exists.
-RoleAssignmentExists: The role assignment already exists.
-RoleAssignmentExists: The role assignment already exists.
-
-
+  
+Deployment Error Details:  
+RoleAssignmentExists: The role assignment already exists.  
+RoleAssignmentExists: The role assignment already exists.  
+RoleAssignmentExists: The role assignment already exists.  
+RoleAssignmentExists: The role assignment already exists.  
+RoleAssignmentExists: The role assignment already exists.  
+RoleAssignmentExists: The role assignment already exists.   
+  
+  
 ## $venvPythonPath へのファイルパスが見つからない旨のエラーメッセージが発生
-script/prepdocs.ps1 内に記載された、python.exe へのパスを、作業者の環境に合わせて変更する。
-$venvPythonPath = "./scripts/.venv/scripts/python.exe"
+script/prepdocs.ps1 内に記載された、python.exe へのパスを、作業者の環境に合わせて変更する。  
+$venvPythonPath = "./scripts/.venv/scripts/python.exe"  
 
 
-## azd env select {env_name} コマンドを実行しても環境が切り替わらない
-1. azd env select {env_name} コマンドを実行し、
-2. azd env get_values コマンドを実行すると、1で切り替えた環境の 
+## azd env select {env_name} コマンドを実行しても環境が切り替わらない  
+1. azd env select {env_name} コマンドを実行し、  
+2. azd env get_values コマンドを実行すると、1で切り替えた環境の   
 　 環境変数（./.azure/{env_name}/.env ファイルの設定内容）が表示されるはずであるが、
 　 別の環境の環境変数が表示されたり、何も表示されなかったりする場合は、
 　 VSCodeのターミナルではなく、OS上から新しい PowerShell ウィンドウを開き、
