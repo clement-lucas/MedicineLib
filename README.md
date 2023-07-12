@@ -20,16 +20,23 @@ azd env get-values
 　 別の環境の環境変数が表示されたり、何も表示されなかったりする場合は、ターミナルを再起動し再度上記コマンドを実行して確認する。  
 　 その際、最初にプロジェクトルートフォルダーへ移動する事を忘れないこと（cd <project_root>）  
   
-6. 以下のコマンドを実行する。  
-azd init (もしも ERROR: environment already initialized to <env_name> というメッセージが出たら無視する)  
-azd provision  
+6. 医療文献を登録用フォルダーに入れる。  
+./data フォルダーに、 ./data_scanned の中身をコピーする。  
+これにより、 azd up 時に pdf の内容が取り込まれる。  
+一度取り込んだら、削除しておくこと。  
   
-7. 任意のデータベースを作成する。  
+7. 以下のコマンドを実行する。  
+azd init (もしも ERROR: environment already initialized to <env_name> というメッセージが出たら無視する)  
+azd up  
+location には **East US** or **South Central US** を指定する。
+なお、使用可能な location は変更となる可能性がある。
+  
+8. 任意のデータベースを作成する。  
 任意の RDB を作成する。  
 作成したら、 ./ddl/ と ./ddl/sample_data/ 配下にある全ての sql ファイルを実行する。  
 これらの SQL は Azure SQL Database 上で動作確認している。  
   
-8. データベースの接続文字列を設定する。  
+9. データベースの接続文字列を設定する。  
 7のデータベースの接続文字列を設定する。  
 ./.azure/<env_name>/.env   
 を開き、  
@@ -47,16 +54,7 @@ https://learn.microsoft.com/ja-jp/azure/app-service/configure-common?tabs=portal
 名前：SQL_CONNECTION_STRING  
 値：<接続文字列>  
   
-9. 医療文献を登録用フォルダーに入れる。  
-./data フォルダーに、 ./data_scanned の中身をコピーする。  
-これにより、 azd up 時に pdf の内容が取り込まれる。  
-一度取り込んだら、削除しておくこと。  
-  
-10. 以下のコマンドを実行する。  
-pwsh ./scripts/roles.ps1 （初回のみ）  
-azd up  
-  
-11. 以降、システムに変更を加えた場合のデプロイに際しては、以下のコマンドを実行する。  
+10. 以降、システムに変更を加えた場合のデプロイに際しては、以下のコマンドを実行する。  
 azd up  
 ただし、 Web アプリケーションに対してのみ変更された場合は、以下のコマンドで良い。  
 azd deploy  
@@ -226,7 +224,7 @@ It will look like the following:
 1. Run `azd env set AZURE_OPENAI_SERVICE {Name of existing OpenAI service}`
 1. Run `azd env set AZURE_OPENAI_RESOURCE_GROUP {Name of existing resource group that OpenAI service is provisioned to}`
 1. Run `azd env set AZURE_OPENAI_CHATGPT_DEPLOYMENT {Name of existing ChatGPT deployment}`. Only needed if your ChatGPT deployment is not the default 'chat'.
-1. Run `azd env set AZURE_OPENAI_GPT_DEPLOYMENT {Name of existing GPT deployment}`. Only needed if your ChatGPT deployment is not the default 'davinci'.
+1. Run `azd env set AZURE_OPENAI_GPT_DEPLOYMENT {Name of existing GPT deployment}`. Only needed if your ChatGPT deployment is not the default 'chat'.
 1. Run `azd up`
 
 > NOTE: You can also use existing Search and Storage Accounts.  See `./infra/main.parameters.json` for list of environment variables to pass to `azd env set` to configure those existing resources.

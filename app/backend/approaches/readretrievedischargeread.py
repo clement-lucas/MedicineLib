@@ -363,7 +363,7 @@ Thought: {agent_scratchpad}"""
 あなたは医師です。
 カルテデータから退院時サマリを作成しようとしています。
 カルテデータは、医師または看護師の書いた SOAP と、アレルギー情報から構成されます。
-以下のフォーマットに沿って出力してください。フォーマット中の半角角括弧で囲まれた部分を置き換えてください。
+以下のフォーマットに沿って出力してください。これは例やサンプルではありません。フォーマット中の半角角括弧で囲まれた部分を置き換えてください。
 例えば、フォーマットの中に[主訴]とあった場合、[主訴]と書いてある部分を、作成した主訴のテキストで置き換えてください。
 カルテデータから読み取れることのできない項目に対しては「特記事項なし」という文言を出力してください。
 医師の書いたSOAPを優先的に input としてください。作成される文章は1000文字以内とします。
@@ -405,47 +405,16 @@ Thought: {agent_scratchpad}"""
         #prompt = records.join("\nAnswer the following question from the text above in Japanese.\n\nQuestion:\n" + question + "\n\nAnswer:\n<|im_end|>")
         # STEP 3: Generate a contextual and content specific answer using the search results and chat history
         completion = openai.Completion.create(
-            engine="davinci", 
+            engine=self.gpt_deployment, 
             prompt=prompt, 
-            temperature=overrides.get("temperature") or 0.7, 
+            temperature=0.7,
             max_tokens=1024, 
-            n=1,
+            frequency_penalty=0,
+            presence_penalty=0,
             stop=None)
         
         print(completion.choices[0].text)
         return {"data_points": "test results", "answer": completion.choices[0].text + "\n\n\nカルテデータ：\n" + records, "thoughts": f"Searched for:<br>q test<br><br>Prompt:<br>" + prompt.replace('\n', '<br>')}
-
-        # q=""
-
-        # # Not great to keep this as instance state, won't work with interleaving (e.g. if using async), but keeps the example simple
-        # self.results = None
-
-        # # Use to capture thought process during iterations
-        # cb_handler = HtmlCallbackHandler()
-        # cb_manager = CallbackManager(handlers=[cb_handler])
-        
-        # acs_tool = Tool(name = "CognitiveSearch", func = lambda q: self.retrieve(q, overrides), description = self.CognitiveSearchToolDescription)
-        # employee_tool = EmployeeInfoTool("Employee1")
-        # tools = [acs_tool, employee_tool]
-
-        # prompt = ZeroShotAgent.create_prompt(
-        #     tools=tools,
-        #     prefix=overrides.get("prompt_template_prefix") or self.template_prefix,
-        #     suffix=overrides.get("prompt_template_suffix") or self.template_suffix,
-        #     input_variables = ["input", "agent_scratchpad"])
-        # llm = AzureOpenAI(deployment_name=self.openai_deployment, temperature=overrides.get("temperature") or 0.3, openai_api_key=openai.api_key)
-        # chain = LLMChain(llm = llm, prompt = prompt)
-        # agent_exec = AgentExecutor.from_agent_and_tools(
-        #     agent = ZeroShotAgent(llm_chain = chain, tools = tools),
-        #     tools = tools, 
-        #     verbose = True, 
-        #     callback_manager = cb_manager)
-        # result = agent_exec.run(q)
-                
-        # # Remove references to tool names that might be confused with a citation
-        # result = result.replace("[CognitiveSearch]", "").replace("[Employee]", "")
-
-        # return {"data_points": self.results or [], "answer": result, "thoughts": cb_handler.get_and_reset_log()}
 
 class EmployeeInfoTool(CsvLookupTool):
     employee_name: str = ""

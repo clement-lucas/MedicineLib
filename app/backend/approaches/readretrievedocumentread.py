@@ -161,7 +161,7 @@ Thought: {agent_scratchpad}"""
         #prompt = records.join("\nAnswer the following question from the text above in Japanese.\n\nQuestion:\n" + question + "\n\nAnswer:\n<|im_end|>")
         # STEP 3: Generate a contextual and content specific answer using the search results and chat history
         completion = openai.Completion.create(
-            engine="davinci", 
+            engine=self.gpt_deployment, 
             prompt=prompt, 
             temperature=overrides.get("temperature") or 0.7, 
             max_tokens=1024, 
