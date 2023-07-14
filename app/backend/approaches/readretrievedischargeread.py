@@ -23,59 +23,19 @@ from parser.nursesnoteparser import NursesNoteParser as NNP
 # [1] E. Karpas, et al. arXiv:2205.00445
 class ReadRetrieveDischargeReadApproach(Approach):
 
-    template_prefix = \
-"You are an intelligent assistant helping doctors and medical staff with their medical information and research related questions. " \
-"Answer the question using only the data provided in the information sources below. " \
-"For tabular information return it as an html table. Do not return markdown format. " \
-"Each source has a name followed by colon and the actual data, quote the source name for each piece of data you use in the response. " \
-"For example, if the question is \"What color is the sky?\" and one of the information sources says \"info123: the sky is blue whenever it's not cloudy\", then answer with \"The sky is blue [info123]\" " \
-"It's important to strictly follow the format where the name of the source is in square brackets at the end of the sentence, and only up to the prefix before the colon (\":\"). " \
-"If there are multiple sources, cite each one in their own square brackets. For example, use \"[info343][ref-76]\" and not \"[info343,ref-76]\". " \
-"Never quote tool names as sources." \
-"If you cannot answer using the sources below, say that you don't know. " \
-"\n\nYou can access to the following tools:"
-    
-    template_suffix = """
-Begin!
+    prompt_prefix = """<|im_start|>system
+The assistant will answer questions about the contents of the medical file as source. Medical record data consists of the date of receipt and the contents of the description. Be brief in your answers.
+Answer ONLY with the facts listed in the list of sources below. If there isn't enough information below, say you don't know. Do not generate answers that don't use the sources below.
+{follow_up_questions_prompt}
+{injected_prompt}
+Sources:
+{sources}
+<|im_end|>
+{chat_history}
+""" 
 
-Question: {input}
 
-Thought: {agent_scratchpad}"""    
 
-    CognitiveSearchToolDescription = "useful for searching the medical related information such as medical journal, medical research, etc."
-
-#     prompt_prefix = """<|im_start|>system
-# The assistant will answer questions about the contents of the medical file as source. Medical record data consists of the date of receipt and the contents of the description. Be brief in your answers.
-# Answer ONLY with the facts listed in the list of sources below. If there isn't enough information below, say you don't know. Do not generate answers that don't use the sources below. If asking a clarifying question to the user would help, ask the question.
-# For tabular information return it as an html table. Do not return markdown format.
-# Each source has a date followed by colon and the actual information, always include date for each fact you use in the response.At the end of the response, give the date of the data used in the format [yyyy/mm/dd].
-# {follow_up_questions_prompt}
-# {injected_prompt}
-# Sources:
-# {sources}
-# <|im_end|>
-# {chat_history}
-# """
-
-#     follow_up_questions_prompt_content = """Generate three very brief follow-up questions that the user would likely ask related with the answer. 
-#     Use double angle brackets to reference the questions, e.g. <<Are there exclusions for prescriptions?>>.
-#     Try not to repeat questions that have already been asked.
-#     Only generate questions and do not generate any text before or after the questions, such as 'Next Questions'"""
-
-#     query_prompt_template = """Below is a history of the conversation so far, and a new question asked by the user that needs to be answered by searching in a knowledge base about medical journal and research.
-#     Generate a search query based on the conversation and the new question. 
-#     Do not include cited source filenames and discharge names e.g info.txt or doc.pdf in the search query terms.
-#     Do not include any text inside [] or <<>> in the search query terms.
-#     If the question is not in English, translate the question to English before generating the search query.
-
-# Chat History:
-# {chat_history}
-
-# Question:
-# {question}
-
-# Search query:
-# """
     def __init__(self, search_client: SearchClient, chatgpt_deployment: str, gpt_deployment: str, sourcepage_field: str, content_field: str):
         self.search_client = search_client
         self.chatgpt_deployment = chatgpt_deployment
@@ -357,9 +317,9 @@ Thought: {agent_scratchpad}"""
 #         回答の最後に、データの日付を[yyyy/mm/dd]の形式で記載してください。
 #        紹介状は、人間に対する手紙のような部分と、HL7規格に沿ったXMLデータの部分にわかれています。
 
-        format = ""
+        question = ""
         if document_name == "退院時サマリ":
-            format = """
+            question = """
 あなたは医師です。
 カルテデータから退院時サマリを作成しようとしています。
 カルテデータは、医師または看護師の書いた SOAP と、アレルギー情報から構成されます。
@@ -397,32 +357,23 @@ Thought: {agent_scratchpad}"""
 [治療方針]
 フォーマット終了
 
-カルテデータ:
-{sources}"""
+"""
+        prompt = self.prompt_prefix.format(injected_prompt="", sources=records, chat_history=self.get_chat_history_as_text(question), follow_up_questions_prompt="")
 
-        prompt = format.format(format_name=document_name, sources=records)
         print(prompt)
         #prompt = records.join("\nAnswer the following question from the text above in Japanese.\n\nQuestion:\n" + question + "\n\nAnswer:\n<|im_end|>")
         # STEP 3: Generate a contextual and content specific answer using the search results and chat history
         completion = openai.Completion.create(
             engine=self.gpt_deployment, 
             prompt=prompt, 
-            temperature=0.7,
+            temperature=overrides.get("temperature") or 0.7, 
             max_tokens=1024, 
-            frequency_penalty=0,
-            presence_penalty=0,
-            stop=None)
+            n=1, 
+            stop=["<|im_end|>", "<|im_start|>"])
         
         print(completion.choices[0].text)
         return {"data_points": "test results", "answer": completion.choices[0].text + "\n\n\nカルテデータ：\n" + records, "thoughts": f"Searched for:<br>q test<br><br>Prompt:<br>" + prompt.replace('\n', '<br>')}
 
-class EmployeeInfoTool(CsvLookupTool):
-    employee_name: str = ""
-
-    def __init__(self, employee_name: str):
-        super().__init__(filename = "data/employeeinfo.csv", key_field = "name", name = "Employee", description = "useful for answering questions about the employee, their benefits and other personal information")
-        self.func = self.employee_info
-        self.employee_name = employee_name
-
-    def employee_info(self, unused: str) -> str:
-        return self.lookup(self.employee_name)
+    def get_chat_history_as_text(self, question, include_last_turn=True, approx_max_tokens=1000) -> str:
+        history_text = """<|im_start|>user""" +"\n" + "user" + "\n" + question + """<|im_end|>""" + "\n" + """<|im_start|>assistant"""
+        return history_text
