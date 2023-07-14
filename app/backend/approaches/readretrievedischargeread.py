@@ -34,38 +34,12 @@ Sources:
 {chat_history}
 """ 
 
-
-
     def __init__(self, search_client: SearchClient, chatgpt_deployment: str, gpt_deployment: str, sourcepage_field: str, content_field: str):
         self.search_client = search_client
         self.chatgpt_deployment = chatgpt_deployment
         self.gpt_deployment = gpt_deployment
         self.sourcepage_field = sourcepage_field
         self.content_field = content_field
-
-    # def retrieve(self, q: str, overrides: dict) -> any:
-    #     use_semantic_captions = True if overrides.get("semantic_captions") else False
-    #     top = overrides.get("top") or 3
-    #     exclude_category = overrides.get("exclude_category") or None
-    #     filter = "category ne '{}'".format(exclude_category.replace("'", "''")) if exclude_category else None
-
-    #     if overrides.get("semantic_ranker"):
-    #         r = self.search_client.search(q,
-    #                                       filter=filter, 
-    #                                       query_type=QueryType.SEMANTIC, 
-    #                                       query_language="en-us", 
-    #                                       query_speller="lexicon", 
-    #                                       semantic_configuration_name="default", 
-    #                                       top = top,
-    #                                       query_caption="extractive|highlight-false" if use_semantic_captions else None)
-    #     else:
-    #         r = self.search_client.search(q, filter=filter, top=top)
-    #     if use_semantic_captions:
-    #         self.results = [doc[self.sourcepage_field] + ":" + nonewlines(" -.- ".join([c.text for c in doc['@search.captions']])) for doc in r]
-    #     else:
-    #         self.results = [doc[self.sourcepage_field] + ":" + nonewlines(doc[self.content_field][:250]) for doc in r]
-    #     content = "\n".join(self.results)
-    #     return content
 
     # yyyyMMddHHMISS -> yyyy/MM/dd HH:MI:SS に変換する関数
     # 例）20140224095813 -> 2014/02/24 09:58:13
@@ -320,7 +294,7 @@ Sources:
         question = ""
         if document_name == "退院時サマリ":
             question = """
-あなたは医師です。
+あなたは医療事務アシスタントです。
 カルテデータから退院時サマリを作成しようとしています。
 カルテデータは、医師または看護師の書いた SOAP と、アレルギー情報から構成されます。
 以下のフォーマットに沿って出力してください。これは例やサンプルではありません。フォーマット中の半角角括弧で囲まれた部分を置き換えてください。
@@ -359,10 +333,7 @@ Sources:
 
 """
         prompt = self.prompt_prefix.format(injected_prompt="", sources=records, chat_history=self.get_chat_history_as_text(question), follow_up_questions_prompt="")
-
         print(prompt)
-        #prompt = records.join("\nAnswer the following question from the text above in Japanese.\n\nQuestion:\n" + question + "\n\nAnswer:\n<|im_end|>")
-        # STEP 3: Generate a contextual and content specific answer using the search results and chat history
         completion = openai.Completion.create(
             engine=self.gpt_deployment, 
             prompt=prompt, 
