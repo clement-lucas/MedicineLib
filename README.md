@@ -90,6 +90,7 @@ az account set -s <AZURE_SUBSCRIPTION_ID>
 AZURE_SUBSCRIPTION_ID には、対象の環境のサブスクリプションIDを入力する。  
   
 3. 以下のコマンドを実行し、2で指定したサブスクリプションに切り替わっていることを確認する。  
+az account show
   
 4. 以下のコマンドを実行する。  
 azd auth login  
