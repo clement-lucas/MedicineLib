@@ -26,8 +26,6 @@ class ReadRetrieveDischargeReadApproach(Approach):
     prompt_prefix = """<|im_start|>system
 The assistant will answer questions about the contents of the medical file as source. Medical record data consists of the date of receipt and the contents of the description. Be brief in your answers.
 Answer ONLY with the facts listed in the list of sources below. If there isn't enough information below, say you don't know. Do not generate answers that don't use the sources below.
-{follow_up_questions_prompt}
-{injected_prompt}
 Sources:
 {sources}
 <|im_end|>
@@ -299,40 +297,31 @@ Sources:
 カルテデータは、医師または看護師の書いた SOAP と、アレルギー情報から構成されます。
 以下のフォーマットに沿って出力してください。これは例やサンプルではありません。フォーマット中の半角角括弧で囲まれた部分を置き換えてください。
 例えば、フォーマットの中に[主訴]とあった場合、[主訴]と書いてある部分を、作成した主訴のテキストで置き換えてください。
-カルテデータから読み取れることのできない項目に対しては「特記事項なし」という文言を出力してください。
+カルテデータから読み取れることのできない項目に対しては「なし」という文言を出力してください。
 医師の書いたSOAPを優先的に input としてください。作成される文章は1000文字以内とします。
 フォーマット開始
-【入院までの経過】
-＜主訴＞
-[主訴]
 
-＜現病歴＞
-[現病歴]
+【アレルギー・不適応反応】​
+[アレルギー・不適応反応]
 
-【入院時現症】
-＜入院時身体所見＞
-[入院時身体所見]
+【主訴または入院理由】​
+[主訴または入院理由]
 
-＜入院時検査所見＞
-[入院時検査所見]
+【入院までの経過】​
+[入院までの経過]
 
-【既往歴・アレルギー】
-＜既往歴＞
-[既往歴]
+【入院経過】​
+[入院経過]
 
-＜アレルギー＞
-[アレルギー]
+【退院時状況】​
+[退院時状況]
 
-【中間サマリー】
-＜臨床経過＞
-[臨床経過]
-
-＜治療方針＞
-[治療方針]
+【退院時方針】
+[退院時方針]
 フォーマット終了
 
 """
-        prompt = self.prompt_prefix.format(injected_prompt="", sources=records, chat_history=self.get_chat_history_as_text(question), follow_up_questions_prompt="")
+        prompt = self.prompt_prefix.format(sources=records, chat_history=self.get_chat_history_as_text(question))
         print(prompt)
         completion = openai.Completion.create(
             engine=self.gpt_deployment, 
