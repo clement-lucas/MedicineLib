@@ -1,3 +1,7 @@
+######################
+# 退院時サマリの作成 #
+######################
+
 import os
 import openai
 import pyodbc
@@ -50,6 +54,31 @@ Sources:
         second = org[12:14]
         return year + "/" + month + "/" + day + " " + hour + ":" + minute + ":" + second
 
+    # 文字列から指定した文字列を削除する関数
+    def delete_prefix(self, text, prefix):
+        if text.startswith(prefix):
+            return text[len(prefix):]
+        return text
+    
+    # 文頭の「：」と改行コードを削除する関数
+    def delete_prefix_colon(self, text):
+        return self.delete_prefix(self.delete_prefix(text, ":"), "\n")
+    
+    # 質問文とカルテデータを受け取って GPT に投げる関数
+    def get_answer(self, category_name, question, sources):
+        prompt = self.prompt_prefix.format(sources=sources, chat_history=self.get_chat_history_as_text(question))
+        completion = openai.Completion.create(
+            engine=self.gpt_deployment, 
+            prompt=prompt, 
+            temperature=0.02, 
+            max_tokens=1024, 
+            n=1, 
+            stop=["<|im_end|>", "<|im_start|>"])
+        ret = completion.choices[0].text
+        ret = self.delete_prefix(ret, category_name)
+        ret = self.delete_prefix_colon(ret)
+        return category_name + "\n" + ret + "\n\n" 
+    
     def get_allergy(self, cursor, pi_item_id, jpn_item_name, patient_code):
         select_allergy_sql = """SELECT PI_ITEM_02, PI_ITEM_03
             FROM EATBPI
@@ -59,16 +88,9 @@ Sources:
         
         cursor.execute(select_allergy_sql, pi_item_id, patient_code)
         rows = cursor.fetchall() 
-        is_first = True
         records = ""
         for row in rows:
-            if is_first:
-                records += "\n以下は患者の" + jpn_item_name + "アレルギーに関する情報 です。\n\n"
-            is_first = False
-            print(row[0])
-            print(row[1])
-            records += "原因となる" + jpn_item_name + "：" + row[0] + "\n"
-            records += "摂取時症状：" + row[1] + "\n\n"
+            records += jpn_item_name + "アレルギー：" + row[0] + "による" + row[1] + "\n"
         return records
 
     def run(self, document_name: str, patient_code:str, overrides: dict) -> any:
@@ -84,13 +106,12 @@ Sources:
         cursor = cnxn.cursor()
 
         # SQL Server から患者情報を取得する
-        # cursor.execute("""SELECT TOP (1000) 
-        #     CONVERT(VARCHAR,[Date],111) + ':' + [Record] AS Record
-        #     FROM [dbo].[MedicalRecord] WHERE IsDeleted = 0 AND PatientCode = ?""", patient_code)
-        #cursor.execute('SELECT Name FROM Patient WHERE PatientCode = ?', patient_code)
-
-        # TODO もしも、標準的な利用シナリオにおいて、入力データが多いなどの理由でGPTのトークン長制限を超えてしまう場合は、
-        # 入力データと出力項目を分割して、複数回に分けてGPTに投げるようにするなどの工夫が必要。
+        cursor.execute("""SELECT PID_NAME
+            FROM [dbo].[EXTBDH1] WHERE ACTIVE_FLG = 1 AND PID = ?""", patient_code)
+        rows = cursor.fetchall() 
+        # Hit しなかった場合は、患者情報が見つからなかったというメッセージを返す
+        if len(rows) == 0:
+            return {"data_points": "test results", "answer": "患者情報が見つかりませんでした。", "thoughts": ""}
 
         # TODO 日付等の各種取得条件は適宜実装のこと
         select_datax_sql = """SELECT EXTBDH1.DOCDATE, EXTBDC1.DOC_DATAX FROM EXTBDC1 
@@ -105,84 +126,102 @@ Sources:
         # 医師記録の取得
         cursor.execute(select_datax_sql,'MD01', patient_code)
         rows = cursor.fetchall() 
-        records = ""
-        is_first = True
+        records_soap = ""
+        records_so = ""
+        records_oa = ""
+        records_a = ""
+        records_p = ""
         for row in rows:
-            if is_first:
-                records += "\n以下は医師の書いた SOAP です。\n\n"
-            is_first = False
-            print("------1")
-            print(row[0])
-            print("------2")
-            print(row[1])
-            print("------3")
             datetime = self.get_datetime(row[0])
             # XML のまま GPT に投げても解釈してくれないこともないが、
             # XML のままだとトークン数をとても消費してしまうので、
             # XML を解釈して、平文に変換する。
             soap = DNP(row[1])
-            records += "記入日：" + datetime + "\n\n"
+            day_of_soap = ""
+            day_of_so = ""
+            day_of_oa = ""
+            day_of_a = ""
+            day_of_p = ""
             if soap.S != "":
-                records += "S：" + soap.S + "\n\n"
+                day_of_soap += "S：" + soap.S + "\n\n"
+                day_of_so += "S：" + soap.S + "\n\n"
             if soap.O != "":
-                records += "O：" + soap.O + "\n\n"
+                day_of_soap += "O：" + soap.O + "\n\n"
+                day_of_so += "O：" + soap.O + "\n\n"
+                day_of_oa += "O：" + soap.O + "\n\n"
             if soap.A != "":
-                records += "A：" + soap.A + "\n\n"
+                day_of_soap += "A：" + soap.A + "\n\n"
+                day_of_oa += "A：" + soap.A + "\n\n"
+                day_of_a += "A：" + soap.A + "\n\n"
             if soap.P != "":
-                records += "P：" + soap.P + "\n\n"
-            records += "\n\n"
-            
-        print(records)
+                day_of_soap += "P：" + soap.P + "\n\n"
+                day_of_p += "P：" + soap.P + "\n\n"
 
-        # 看護記録の取得
-        cursor.execute(select_datax_sql,'ON01', patient_code)
-        rows = cursor.fetchall() 
-        is_first = True
-        for row in rows:
-            if is_first:
-                records += "\n以下は看護師の書いた SOAP です。\n\n"
-            is_first = False
-            print("------1")
-            print(row[0])
-            print("------2")
-            print(row[1])
-            print("------3")
-            datetime = self.get_datetime(row[0])
-            # XML のまま GPT に投げても解釈してくれないこともないが、
-            # XML のままだとトークン数をとても消費してしまうので、
-            # XML を解釈して、平文に変換する。
-            soap = NNP(row[1])
-            records += "記入日：" + datetime + "\n\n"
-            if soap.S != "":
-                records += "S：" + soap.S + "\n\n"
-            if soap.O != "":
-                records += "O：" + soap.O + "\n\n"
-            if soap.A != "":
-                records += "A：" + soap.A + "\n\n"
-            if soap.P != "":
-                records += "P：" + soap.P + "\n\n"
-            records += "\n\n"
-        print(records)
+            if day_of_soap != "":
+                records_soap += "記入日：" + datetime + "\n\n"
+                records_soap += day_of_soap
+                records_soap += "\n"
+            if day_of_so != "":
+                records_so += "記入日：" + datetime + "\n\n"
+                records_so += day_of_so
+                records_so += "\n"
+            if day_of_oa != "":
+                records_oa += "記入日：" + datetime + "\n\n"
+                records_oa += day_of_oa
+                records_oa += "\n"
+            if day_of_a != "":
+                records_a += "記入日：" + datetime + "\n\n"
+                records_a += day_of_a
+                records_a += "\n"
+            if day_of_p != "":
+                records_p += "記入日：" + datetime + "\n\n"
+                records_p += day_of_p
+                records_p += "\n"
+        
+        if records_soap != "":
+            records_soap = "\n以下は医師の書いた SOAP です。\n\n" + records_soap
+        if records_so != "":
+            records_so = "\n以下は医師の書いた SO です。\n\n" + records_so
+        if records_oa != "":
+            records_oa = "\n以下は医師の書いた OA です。\n\n" + records_oa
+        if records_a != "":
+            records_a = "\n以下は医師の書いた A です。\n\n" + records_a
+        if records_p != "":
+            records_p = "\n以下は医師の書いた P です。\n\n" + records_p
+
+
+        # QA No.11 対応により、看護記録は一旦削除する
+        # # 看護記録の取得
+        # cursor.execute(select_datax_sql,'ON01', patient_code)
+        # rows = cursor.fetchall() 
+        # is_first = True
+        # for row in rows:
+        #     if is_first:
+        #         records += "\n以下は看護師の書いた SOAP です。\n\n"
+        #     is_first = False
+        #     print("------1")
+        #     print(row[0])
+        #     print("------2")
+        #     print(row[1])
+        #     print("------3")
+        #     datetime = self.get_datetime(row[0])
+        #     # XML のまま GPT に投げても解釈してくれないこともないが、
+        #     # XML のままだとトークン数をとても消費してしまうので、
+        #     # XML を解釈して、平文に変換する。
+        #     soap = NNP(row[1])
+        #     records += "記入日：" + datetime + "\n\n"
+        #     if soap.S != "":
+        #         records += "S：" + soap.S + "\n\n"
+        #     if soap.O != "":
+        #         records += "O：" + soap.O + "\n\n"
+        #     if soap.A != "":
+        #         records += "A：" + soap.A + "\n\n"
+        #     if soap.P != "":
+        #         records += "P：" + soap.P + "\n\n"
+        #     records += "\n\n"
+        # print(records)
 
         # TODO SV08, SV09 への対応
-
-        # ARG001（薬剤アレルギー）
-        # ARG010（食物アレルギー）
-        # ARG040（注意すべき食物）
-        # ARGN10（その他アレルギー）
-
-        # 薬剤アレルギー情報の取得
-        records += self.get_allergy(cursor, 'ARG001', '薬剤', patient_code)
-        
-        # 食物アレルギー情報の取得
-        records += self.get_allergy(cursor, 'ARG010', '食物', patient_code)
-
-        # 注意すべき食物情報の取得
-        records += self.get_allergy(cursor, 'ARG040', '注意すべき食物', patient_code)
-
-        # その他アレルギー情報の取得
-        records += self.get_allergy(cursor, 'ARGN10', 'その他原因物質', patient_code)
-        print(records)
 
         # 紹介元履歴の取得
         # TODO 本項目は単純な転記であり、
@@ -255,20 +294,6 @@ Sources:
         #     records += "照会先住所：" + row[6] + "\n\n"
 
 
-        # 退院処方の取得
-        # TODO 本項目は単純な転記であり、
-        # GPT の介在を必要としないプログラムにより実現が可能な処理であるため、
-        # ここでは SQL サンプルの記載のみにとどめ、取得しないこととする。
-        select_taiinji_shoho_sql = """
-        SELECT EXTBOD1.IATTR, EXTBOD1.INAME, EXTBOD1.NUM, EXTBOD1.UNAME FROM EXTBDH1 
-            INNER JOIN EXTBOD1 
-            ON EXTBOD1.DOC_NO = EXTBDH1.DOC_NO
-            AND EXTBDH1.DOC_K = 'H004'
-            AND EXTBDH1.ACTIVE_FLG = 1 
-            AND EXTBOD1.ACTIVE_FLG = 1 
-            AND EXTBDH1.PID = ?
-			ORDER BY EXTBOD1.SEQ"""
-
         # 退院後予約情報の取得
         # TODO 本項目は単純な転記であり、
         # GPT の介在を必要としないプログラムにより実現が可能な処理であるため、
@@ -284,55 +309,111 @@ Sources:
 			ORDER BY EXTBOD1.SEQ
             """
 
-#        follow_up_questions_prompt = self.follow_up_questions_prompt_content if overrides.get("suggest_followup_questions") else ""
-#        以下のカルテデータからHL7規格に沿った{format_name}を json 形式で出力してください。
-#         回答の最後に、データの日付を[yyyy/mm/dd]の形式で記載してください。
-#        紹介状は、人間に対する手紙のような部分と、HL7規格に沿ったXMLデータの部分にわかれています。
+        ret = ""
+        # 【アレルギー・不適応反応】​
+        # ARG001（薬剤アレルギー）
+        # ARG010（食物アレルギー）
+        # ARG040（注意すべき食物）
+        # ARGN10（その他アレルギー）
 
-        question = ""
-        if document_name == "退院時サマリ":
-            question = """
-あなたは医療事務アシスタントです。
-カルテデータから退院時サマリを作成しようとしています。
-カルテデータは、医師または看護師の書いた SOAP と、アレルギー情報から構成されます。
-以下のフォーマットに沿って出力してください。これは例やサンプルではありません。フォーマット中の半角角括弧で囲まれた部分を置き換えてください。
-例えば、フォーマットの中に[主訴]とあった場合、[主訴]と書いてある部分を、作成した主訴のテキストで置き換えてください。
-カルテデータから読み取れることのできない項目に対しては「なし」という文言を出力してください。
-医師の書いたSOAPを優先的に input としてください。作成される文章は1000文字以内とします。
-フォーマット開始
-
-【アレルギー・不適応反応】​
-[アレルギー・不適応反応]
-
-【主訴または入院理由】​
-[主訴または入院理由]
-
-【入院までの経過】​
-[入院までの経過]
-
-【入院経過】​
-[入院経過]
-
-【退院時状況】​
-[退院時状況]
-
-【退院時方針】
-[退院時方針]
-フォーマット終了
-
-"""
-        prompt = self.prompt_prefix.format(sources=records, chat_history=self.get_chat_history_as_text(question))
-        print(prompt)
-        completion = openai.Completion.create(
-            engine=self.gpt_deployment, 
-            prompt=prompt, 
-            temperature=overrides.get("temperature") or 0.7, 
-            max_tokens=1024, 
-            n=1, 
-            stop=["<|im_end|>", "<|im_start|>"])
+        allergy = ""
+        # 薬剤アレルギー情報の取得
+        allergy += self.get_allergy(cursor, 'ARG001', '薬剤', patient_code)
         
-        print(completion.choices[0].text)
-        return {"data_points": "test results", "answer": completion.choices[0].text + "\n\n\nカルテデータ：\n" + records, "thoughts": f"Searched for:<br>q test<br><br>Prompt:<br>" + prompt.replace('\n', '<br>')}
+        # 食物アレルギー情報の取得
+        allergy += self.get_allergy(cursor, 'ARG010', '食物', patient_code)
+
+        # 注意すべき食物情報の取得
+        allergy += self.get_allergy(cursor, 'ARG040', '注意すべき食物', patient_code)
+
+        # その他アレルギー情報の取得
+        allergy += self.get_allergy(cursor, 'ARGN10', 'その他原因物質', patient_code)
+        if allergy != "":
+            allergy = "【アレルギー・不適応反応】\n" + allergy + "\n"
+        else :
+            allergy = "【アレルギー・不適応反応】\n" + "なし\n\n"
+        ret += allergy
+
+        # 【主訴または入院理由】​
+        ret += self.get_answer("【主訴または入院理由】", """あなたは医療事務アシスタントです。
+カルテデータから退院時サマリの項目である【主訴または入院理由】​を作成してください。
+作成した【主訴または入院理由】の部分のみ出力してください。前後の修飾文や、項目名は不要です。
+カルテデータは、医師または看護師の書いた SOAP から構成されます。
+カルテデータから【主訴または入院理由】が読み取れない場合、「なし」という文言を出力してください。
+作成される文章は1000文字以内とします。
+""", records_so)
+
+        # 【入院までの経過】​
+        ret += self.get_answer("【入院までの経過】", """あなたは医療事務アシスタントです。
+カルテデータから退院時サマリの項目である【入院までの経過】​を作成してください。
+【入院までの経過】​は、サブ項目として＜現病歴＞、＜既往歴＞、＜入院時身体所見＞、＜入院時検査所見＞から構成されます。
+作成したサブ項目の部分のみ出力してください。前後の修飾文や、項目名は不要です。
+カルテデータは、医師または看護師の書いた SOAP から構成されます。
+カルテデータから各サブ項目が読み取れない場合、「なし」という文言を出力してください。
+作成される文章は1000文字以内とします。
+""", records_soap)
+
+        # 【入院経過】​
+        ret += self.get_answer("【入院経過】​", """あなたは医療事務アシスタントです。
+カルテデータから退院時サマリの項目である【入院経過】​を作成しようとしています。
+カルテデータは、医師または看護師の書いた SOAP から構成されます。
+カルテデータの A (assessment) の部分を入院経過として出力してください。
+前後の修飾文や、項目名は不要です。
+カルテデータから A (assessment) の部分をが読み取れない場合、「なし」という文言を出力してください。
+作成される文章は1000文字以内とします。
+""", records_a)
+
+        # 【退院時状況】​
+        temp = self.get_answer("【退院時の状況】​​", """あなたは医療事務アシスタントです。
+カルテデータから退院時サマリの項目である【退院時の状況】​を作成してください。
+作成した【退院時の状況】の部分のみ出力してください。前後の修飾文や、項目名は不要です。
+カルテデータは、医師または看護師の書いた SOAP から構成されます。
+カルテデータから【退院時の状況】が読み取れない場合、「なし」という文言を出力してください。
+作成される文章は1000文字以内とします。
+""", records_oa)
+        # tempの中の項目名である【退院時の状況】を【退院時状況】に変更する
+        # これは、項目名に「の」を含めた方が、
+        # GPT が生成する文章の正確性（「なし」を「なし」と出力）が高い傾向が見受けられたため。
+        temp = temp.replace("【退院時の状況】​​", "【退院時状況】")
+        ret += temp
+
+        # 【退院時使用薬剤】​
+        select_taiinji_shoho_sql = """
+        SELECT EXTBOD1.IATTR, EXTBOD1.INAME, EXTBOD1.NUM, EXTBOD1.UNAME FROM EXTBDH1 
+            INNER JOIN EXTBOD1 
+            ON EXTBOD1.DOC_NO = EXTBDH1.DOC_NO
+            AND EXTBDH1.DOC_K = 'H004'
+			AND EXTBOD1.IATTR in ('HD1','HY1')
+            AND EXTBDH1.ACTIVE_FLG = 1 
+            AND EXTBOD1.ACTIVE_FLG = 1 
+            AND EXTBDH1.PID = ?
+			ORDER BY EXTBOD1.SEQ"""
+        cursor.execute(select_taiinji_shoho_sql, patient_code)
+        rows = cursor.fetchall() 
+        medicine = ""
+        for row in rows:
+            if row[0] == "HY1":
+                medicine += "　"
+            medicine += row[1] + "　" + str(row[2]) + row[3] + "\n"
+        if medicine != "":
+            medicine = "【退院時使用薬剤】\n" + medicine + "\n"
+        else:
+            medicine = "【退院時使用薬剤】\n" + "なし" + "\n\n"
+        ret += medicine
+
+        # 【退院時方針】
+        ret += self.get_answer("【退院時方針】", """あなたは医療事務アシスタントです。
+カルテデータから退院時サマリの項目である【退院時方針】​を作成してください。
+ただし、退院時方針は治療方針とは異なります。治療方針を含めないでください。
+作成した【退院時方針】の部分のみ出力してください。前後の修飾文や、項目名は不要です。
+カルテデータは、医師または看護師の書いた SOAP から構成されます。
+カルテデータから【退院時方針】が読み取れない場合、「なし」という文言を出力してください。
+作成される文章は1000文字以内とします。
+""", records_p)
+        
+        print(ret)
+        print("\n\n\nカルテデータ：\n" + records_soap + allergy + medicine)
+        return {"data_points": "test results", "answer": ret + "\n\n\nカルテデータ：\n" + records_soap + allergy + medicine, "thoughts": ""}
 
     def get_chat_history_as_text(self, question, include_last_turn=True, approx_max_tokens=1000) -> str:
         history_text = """<|im_start|>user""" +"\n" + "user" + "\n" + question + """<|im_end|>""" + "\n" + """<|im_start|>assistant"""
