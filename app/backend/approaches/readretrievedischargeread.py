@@ -70,7 +70,7 @@ Sources:
         completion = openai.Completion.create(
             engine=self.gpt_deployment, 
             prompt=prompt, 
-            temperature=0.02, 
+            temperature=0.01, 
             max_tokens=1024, 
             n=1, 
             stop=["<|im_end|>", "<|im_start|>"])
