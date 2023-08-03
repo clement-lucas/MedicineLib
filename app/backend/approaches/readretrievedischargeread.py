@@ -352,7 +352,7 @@ Answer ONLY with the facts listed in the list of sources below. If there isn't e
 カルテデータは、医師または看護師の書いた SOAP から構成されます。
 カルテデータの A (assessment) の部分を入院経過として出力してください。
 前後の修飾文や、項目名は不要です。
-カルテデータから A (assessment) の部分をが読み取れない場合、「なし」という文言を出力してください。
+カルテデータから A (assessment) の部分が読み取れない場合、「なし」という文言を出力してください。
 作成される文章は1000文字以内とします。
 """, records_a)
 
