@@ -69,6 +69,13 @@ Answer ONLY with the facts listed in the list of sources below. If there isn't e
         answer = answer.lstrip(category_name)
         answer = answer.lstrip("：")
         answer = answer.lstrip("\n")
+
+        # どうしても「「なし」と出力します。」などと冗長に出力されてしまう場合は
+        # 以下のように抑止することができる。
+        # answer に「なし」という文字列が含まれていたら、空文字に置き換える
+        # 例）「なし」と出力します。 -> なし
+        # if answer.find("「なし」と出力します。") != -1 or answer.find("「なし」という文言を出力します。") != -1:
+        #     answer = "なし"
         return "【" + category_name+ "】" + "\n" + answer + "\n\n" 
     
     def get_allergy(self, cursor, pi_item_id, jpn_item_name, patient_code):
@@ -170,17 +177,17 @@ Answer ONLY with the facts listed in the list of sources below. If there isn't e
                 records_p += day_of_p
                 records_p += "\n"
         
+        soap_prefix = "\n以下は医師の書いた SOAP です。\n\n"
         if records_soap != "":
-            records_soap = "\n以下は医師の書いた SOAP です。\n\n" + records_soap
+            records_soap = soap_prefix + records_soap
         if records_so != "":
-            records_so = "\n以下は医師の書いた SO です。\n\n" + records_so
+            records_so = soap_prefix + records_so
         if records_oa != "":
-            records_oa = "\n以下は医師の書いた OA です。\n\n" + records_oa
+            records_oa = soap_prefix + records_oa
         if records_a != "":
-            records_a = "\n以下は医師の書いた A です。\n\n" + records_a
+            records_a = soap_prefix + records_a
         if records_p != "":
-            records_p = "\n以下は医師の書いた P です。\n\n" + records_p
-
+            records_p = soap_prefix + records_p        
 
         # QA No.11 対応により、看護記録は一旦削除する
         # # 看護記録の取得
