@@ -1,6 +1,3 @@
-USE [MedicalRecordDB]
-GO
-
 INSERT INTO EXTBDC1 (PID,
 DOC_NO,
 ACTIVE_FLG,

@@ -1,6 +1,3 @@
-USE [MedicalRecordDB]
-GO
-
 INSERT INTO [dbo].[EATBPI] (PID,
 PI_ITEM_ATTR,
 PI_ITEM_ID,

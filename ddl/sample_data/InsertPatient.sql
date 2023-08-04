@@ -1,6 +1,3 @@
-USE [MedicalRecordDB]
-GO
-
 INSERT INTO [dbo].[Patient]
            ([PatientCode]
            ,[Name]

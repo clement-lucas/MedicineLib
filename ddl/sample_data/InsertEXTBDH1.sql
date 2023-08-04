@@ -1,6 +1,3 @@
-USE [MedicalRecordDB]
-GO
-
 INSERT INTO [dbo].[EXTBDH1] (PID,
 DOC_NO,
 FMT,
