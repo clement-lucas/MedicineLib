@@ -1,5 +1,3 @@
-USE [MedicalRecordDB]
-GO
 INSERT INTO [dbo].[EXTBOD1]
            ([PID]
            ,[DOC_NO]

@@ -20,15 +20,9 @@ from lookuptool import CsvLookupTool
 # [1] E. Karpas, et al. arXiv:2205.00445
 class ReadRetrieveDocumentReadApproach(Approach):
 
-    prompt_prefix = """<|im_start|>system
-The assistant will answer questions about the contents of the medical file as source. Medical record data consists of the date of receipt and the contents of the description. Be brief in your answers.
+    prompt_prefix = """
+The assistant will answer questions about the contents of the medical records as source. Medical record data consists of the date of receipt and the contents of the description. Be brief in your answers.
 Answer ONLY with the facts listed in the list of sources below. If there isn't enough information below, say you don't know. Do not generate answers that don't use the sources below.
-{follow_up_questions_prompt}
-{injected_prompt}
-Sources:
-{sources}
-<|im_end|>
-{chat_history}
 """ 
 
     def __init__(self, search_client: SearchClient, chatgpt_deployment: str, gpt_deployment: str, sourcepage_field: str, content_field: str):
@@ -84,18 +78,22 @@ Sources:
 以下のカルテデータから看護記録を作成してください。
 ただし、作成される文章は1000文字以内とします。"""
 
-        prompt = self.prompt_prefix.format(injected_prompt="", sources=records, chat_history=self.get_chat_history_as_text(question), follow_up_questions_prompt="")
-        print(prompt)
-        completion = openai.Completion.create(
-            engine=self.gpt_deployment, 
-            prompt=prompt, 
-            temperature=overrides.get("temperature") or 0.7, 
-            max_tokens=1024, 
-            n=1, 
-            stop=["<|im_end|>", "<|im_start|>"])
-        
-        print(completion.choices[0].text)
-        return {"data_points": "test results", "answer": completion.choices[0].text, "thoughts": f"Searched for:<br>q test<br><br>Prompt:<br>" + prompt.replace('\n', '<br>')}
+        messages = [{"role":"system","content":self.prompt_prefix},
+                    {"role":"user","content":question + "\n\nカルテデータ：\n\n" + records}]
+        print(messages)
+
+        completion = openai.ChatCompletion.create(
+            engine=self.gpt_deployment,
+            messages = messages,
+            temperature=0.7,
+            max_tokens=800,
+            top_p=0.95,
+            frequency_penalty=0,
+            presence_penalty=0,
+            stop=None)
+        answer = completion.choices[0].message.content
+        print(answer)        
+        return {"data_points": "test results", "answer": answer, "thoughts": f"Searched for:<br>q test<br><br>Prompt:<br>"}
 
     def get_chat_history_as_text(self, question, include_last_turn=True, approx_max_tokens=1000) -> str:
         history_text = """<|im_start|>user""" +"\n" + "user" + "\n" + question + """<|im_end|>""" + "\n" + """<|im_start|>assistant"""

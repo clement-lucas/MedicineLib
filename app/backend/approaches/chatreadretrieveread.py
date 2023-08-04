@@ -60,15 +60,23 @@ Search query:
         filter = "category ne '{}'".format(exclude_category.replace("'", "''")) if exclude_category else None
 
         # STEP 1: Generate an optimized keyword search query based on the chat history and the last question
+        messages = []
+        messages.append({"role":"system","content":"You are AI assistant."})
         prompt = self.query_prompt_template.format(chat_history=self.get_chat_history_as_text(history, include_last_turn=False), question=history[-1]["user"])
-        completion = openai.Completion.create(
-            engine=self.gpt_deployment, 
-            prompt=prompt, 
-            temperature=0.0, 
-            max_tokens=32, 
-            n=1, 
-            stop=["\n"])
-        q = completion.choices[0].text
+        messages.append({"role":"user","content":prompt})
+
+        print(messages)
+
+        completion = openai.ChatCompletion.create(
+            engine=self.gpt_deployment,
+            messages = messages,
+            temperature=0.7,
+            max_tokens=800,
+            top_p=0.95,
+            frequency_penalty=0,
+            presence_penalty=0,
+            stop=None)
+        q = completion.choices[0].message.content
 
         print(q)
 
@@ -102,15 +110,27 @@ Search query:
             prompt = prompt_override.format(sources=content, chat_history=self.get_chat_history_as_text(history), follow_up_questions_prompt=follow_up_questions_prompt)
 
         # STEP 3: Generate a contextual and content specific answer using the search results and chat history
-        completion = openai.Completion.create(
-            engine=self.chatgpt_deployment, 
-            prompt=prompt, 
-            temperature=overrides.get("temperature") or 0.7, 
-            max_tokens=1024, 
-            n=1, 
-            stop=["<|im_end|>", "<|im_start|>"])
 
-        return {"data_points": results, "answer": completion.choices[0].text, "thoughts": f"Searched for:<br>{q}<br><br>Prompt:<br>" + prompt.replace('\n', '<br>')}
+        # TODO GPT3.5turbo のバージョンアップ（0301->0613）対応によりAPIの呼び出し方が変わった。
+        # そのため、取り急ぎ簡易的な対応として、以下の形式での message 作成を行っている。
+        # この対応でも動作するが、より根本的な対応としては、会話の履歴を messages の配列要素として渡すようにする。
+        # 根本的な対応を行うか否かは、医療文献検索機能を正式なリリース対象機能とするか否かによって決定すると良い。
+        messages = []
+        messages.append({"role":"system","content":"You are AI assistant."})
+        messages.append({"role":"user","content":prompt})
+
+        completion = openai.ChatCompletion.create(
+            engine=self.gpt_deployment,
+            messages = messages,
+            temperature=0.7,
+            max_tokens=800,
+            top_p=0.95,
+            frequency_penalty=0,
+            presence_penalty=0,
+            stop=None)
+        answer = completion.choices[0].message.content
+
+        return {"data_points": results, "answer": answer, "thoughts": f"Searched for:<br>{q}<br><br>Prompt:<br>"}
     
     def get_chat_history_as_text(self, history, include_last_turn=True, approx_max_tokens=1000) -> str:
         history_text = ""
@@ -119,3 +139,4 @@ Search query:
             if len(history_text) > approx_max_tokens*4:
                 break    
         return history_text
+        

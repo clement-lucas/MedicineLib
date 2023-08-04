@@ -27,15 +27,10 @@ from parser.nursesnoteparser import NursesNoteParser as NNP
 # [1] E. Karpas, et al. arXiv:2205.00445
 class ReadRetrieveDischargeReadApproach(Approach):
 
-    prompt_prefix = """<|im_start|>system
-The assistant will answer questions about the contents of the medical file as source. Medical record data consists of the date of receipt and the contents of the description. Be brief in your answers.
+    prompt_prefix = """
+The assistant will answer questions about the contents of the medical records as source. Medical record data consists of the date of receipt and the contents of the description. Be brief in your answers.
 Answer ONLY with the facts listed in the list of sources below. If there isn't enough information below, say you don't know. Do not generate answers that don't use the sources below.
-Sources:
-{sources}
-<|im_end|>
-{chat_history}
 """ 
-
     def __init__(self, search_client: SearchClient, chatgpt_deployment: str, gpt_deployment: str, sourcepage_field: str, content_field: str):
         self.search_client = search_client
         self.chatgpt_deployment = chatgpt_deployment
@@ -53,31 +48,35 @@ Sources:
         minute = org[10:12]
         second = org[12:14]
         return year + "/" + month + "/" + day + " " + hour + ":" + minute + ":" + second
-
-    # 文字列から指定した文字列を削除する関数
-    def delete_prefix(self, text, prefix):
-        if text.startswith(prefix):
-            return text[len(prefix):]
-        return text
-    
-    # 文頭の「：」と改行コードを削除する関数
-    def delete_prefix_colon(self, text):
-        return self.delete_prefix(self.delete_prefix(text, ":"), "\n")
     
     # 質問文とカルテデータを受け取って GPT に投げる関数
     def get_answer(self, category_name, question, sources):
-        prompt = self.prompt_prefix.format(sources=sources, chat_history=self.get_chat_history_as_text(question))
-        completion = openai.Completion.create(
-            engine=self.gpt_deployment, 
-            prompt=prompt, 
-            temperature=0.01, 
-            max_tokens=1024, 
-            n=1, 
-            stop=["<|im_end|>", "<|im_start|>"])
-        ret = completion.choices[0].text
-        ret = self.delete_prefix(ret, category_name)
-        ret = self.delete_prefix_colon(ret)
-        return category_name + "\n" + ret + "\n\n" 
+        messages = [{"role":"system","content":self.prompt_prefix},
+                    {"role":"user","content":question + "\n\nmedical record:\n\n" + sources}]
+        print(messages)
+
+        completion = openai.ChatCompletion.create(
+            engine=self.gpt_deployment,
+            messages = messages,
+            temperature=0.01,
+            max_tokens=800,
+            top_p=0.95,
+            frequency_penalty=0,
+            presence_penalty=0,
+            stop=None)
+        answer = completion.choices[0].message.content
+        answer = answer.lstrip("【" + category_name+ "】")
+        answer = answer.lstrip(category_name)
+        answer = answer.lstrip("：")
+        answer = answer.lstrip("\n")
+
+        # どうしても「「なし」と出力します。」などと冗長に出力されてしまう場合は
+        # 以下のように抑止することができる。
+        # answer に「なし」という文字列が含まれていたら、空文字に置き換える
+        # 例）「なし」と出力します。 -> なし
+        # if answer.find("「なし」と出力します。") != -1 or answer.find("「なし」という文言を出力します。") != -1:
+        #     answer = "なし"
+        return "【" + category_name+ "】" + "\n" + answer + "\n\n" 
     
     def get_allergy(self, cursor, pi_item_id, jpn_item_name, patient_code):
         select_allergy_sql = """SELECT PI_ITEM_02, PI_ITEM_03
@@ -178,17 +177,17 @@ Sources:
                 records_p += day_of_p
                 records_p += "\n"
         
+        soap_prefix = "\n以下は医師の書いた SOAP です。\n\n"
         if records_soap != "":
-            records_soap = "\n以下は医師の書いた SOAP です。\n\n" + records_soap
+            records_soap = soap_prefix + records_soap
         if records_so != "":
-            records_so = "\n以下は医師の書いた SO です。\n\n" + records_so
+            records_so = soap_prefix + records_so
         if records_oa != "":
-            records_oa = "\n以下は医師の書いた OA です。\n\n" + records_oa
+            records_oa = soap_prefix + records_oa
         if records_a != "":
-            records_a = "\n以下は医師の書いた A です。\n\n" + records_a
+            records_a = soap_prefix + records_a
         if records_p != "":
-            records_p = "\n以下は医師の書いた P です。\n\n" + records_p
-
+            records_p = soap_prefix + records_p        
 
         # QA No.11 対応により、看護記録は一旦削除する
         # # 看護記録の取得
@@ -335,7 +334,7 @@ Sources:
         ret += allergy
 
         # 【主訴または入院理由】​
-        ret += self.get_answer("【主訴または入院理由】", """あなたは医療事務アシスタントです。
+        ret += self.get_answer("主訴または入院理由", """あなたは医療事務アシスタントです。
 カルテデータから退院時サマリの項目である【主訴または入院理由】​を作成してください。
 作成した【主訴または入院理由】の部分のみ出力してください。前後の修飾文や、項目名は不要です。
 カルテデータは、医師または看護師の書いた SOAP から構成されます。
@@ -344,9 +343,10 @@ Sources:
 """, records_so)
 
         # 【入院までの経過】​
-        ret += self.get_answer("【入院までの経過】", """あなたは医療事務アシスタントです。
+        ret += self.get_answer("入院までの経過", """あなたは医療事務アシスタントです。
 カルテデータから退院時サマリの項目である【入院までの経過】​を作成してください。
 【入院までの経過】​は、サブ項目として＜現病歴＞、＜既往歴＞、＜入院時身体所見＞、＜入院時検査所見＞から構成されます。
+＜現病歴＞は S から、＜既往歴＞は S から、＜入院時身体所見＞は O から、＜入院時検査所見＞は O から始まる項目より抽出してください。
 作成したサブ項目の部分のみ出力してください。前後の修飾文や、項目名は不要です。
 カルテデータは、医師または看護師の書いた SOAP から構成されます。
 カルテデータから各サブ項目が読み取れない場合、「なし」という文言を出力してください。
@@ -354,17 +354,17 @@ Sources:
 """, records_soap)
 
         # 【入院経過】​
-        ret += self.get_answer("【入院経過】​", """あなたは医療事務アシスタントです。
+        ret += self.get_answer("入院経過", """あなたは医療事務アシスタントです。
 カルテデータから退院時サマリの項目である【入院経過】​を作成しようとしています。
 カルテデータは、医師または看護師の書いた SOAP から構成されます。
 カルテデータの A (assessment) の部分を入院経過として出力してください。
 前後の修飾文や、項目名は不要です。
-カルテデータから A (assessment) の部分をが読み取れない場合、「なし」という文言を出力してください。
+カルテデータから A (assessment) の部分が読み取れない場合、「なし」という文言を出力してください。
 作成される文章は1000文字以内とします。
 """, records_a)
 
         # 【退院時状況】​
-        temp = self.get_answer("【退院時の状況】​​", """あなたは医療事務アシスタントです。
+        temp = self.get_answer("退院時の状況​​", """あなたは医療事務アシスタントです。
 カルテデータから退院時サマリの項目である【退院時の状況】​を作成してください。
 作成した【退院時の状況】の部分のみ出力してください。前後の修飾文や、項目名は不要です。
 カルテデータは、医師または看護師の書いた SOAP から構成されます。
@@ -402,9 +402,10 @@ Sources:
         ret += medicine
 
         # 【退院時方針】
-        ret += self.get_answer("【退院時方針】", """あなたは医療事務アシスタントです。
+        ret += self.get_answer("退院時方針", """あなたは医療事務アシスタントです。
 カルテデータから退院時サマリの項目である【退院時方針】​を作成してください。
 ただし、退院時方針は治療方針とは異なります。治療方針を含めないでください。
+「退院時」や「退院」という文言を含まない文脈は、退院時方針ではないので注意してください。
 作成した【退院時方針】の部分のみ出力してください。前後の修飾文や、項目名は不要です。
 カルテデータは、医師または看護師の書いた SOAP から構成されます。
 カルテデータから【退院時方針】が読み取れない場合、「なし」という文言を出力してください。
@@ -415,6 +416,3 @@ Sources:
         print("\n\n\nカルテデータ：\n" + records_soap + allergy + medicine)
         return {"data_points": "test results", "answer": ret + "\n\n\nカルテデータ：\n" + records_soap + allergy + medicine, "thoughts": ""}
 
-    def get_chat_history_as_text(self, question, include_last_turn=True, approx_max_tokens=1000) -> str:
-        history_text = """<|im_start|>user""" +"\n" + "user" + "\n" + question + """<|im_end|>""" + "\n" + """<|im_start|>assistant"""
-        return history_text

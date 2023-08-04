@@ -19,6 +19,7 @@ param searchServiceResourceGroupLocation string = location
 
 param searchServiceSkuName string = 'standard'
 param searchIndexName string = 'gptkbindex'
+param chatGptDeploymentCapacity int = 30
 
 param storageAccountName string = ''
 param storageResourceGroupName string = ''
@@ -144,10 +145,11 @@ module openAi 'core/ai/cognitiveservices.bicep' = {
         model: {
           format: 'OpenAI'
           name: chatGptModelName
-          version: '0301'
+          version: '0613'
         }
-        scaleSettings: {
-          scaleType: 'Standard'
+        sku: {
+          name: 'Standard'
+          capacity: chatGptDeploymentCapacity
         }
       }
     ]
