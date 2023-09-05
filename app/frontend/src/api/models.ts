@@ -47,6 +47,9 @@ export type AskResponse = {
     answer: string;
     thoughts: string | null;
     data_points: string[];
+    completion_tokens: number;
+    prompt_tokens: number;
+    total_tokens: number;
     error?: string;
 };
 

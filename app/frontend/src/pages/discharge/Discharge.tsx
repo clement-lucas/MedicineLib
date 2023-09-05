@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
+import { useRef, useState} from "react";
 import { Checkbox, ChoiceGroup, IChoiceGroupOption, Panel, DefaultButton, Spinner, TextField, SpinButton } from "@fluentui/react";
+import { Label, Stack } from "@fluentui/react";
 
 import styles from "./Discharge.module.css";
 
@@ -23,6 +24,9 @@ const Discharge = () => {
     const [patientCode, setPatientCode] = useState<string>("");
 
     const lastQuestionRef = useRef<string>("");
+    const [completionTokens, setCompletionTokens] = useState<number>(0);
+    const [promptTokens, setPromptTokens] = useState<number>(0);
+    const [totalTokens, setTotalTokens] = useState<number>(0);
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<unknown>();
@@ -55,6 +59,9 @@ const Discharge = () => {
             };
             const result = await dischargeApi(request);
             setAnswer(result);
+            setCompletionTokens(result.completion_tokens);
+            setPromptTokens(result.prompt_tokens);
+            setTotalTokens(result.total_tokens);
         } catch (e) {
             setError(e);
         } finally {
@@ -159,6 +166,18 @@ const Discharge = () => {
                             onThoughtProcessClicked={() => onToggleTab(AnalysisPanelTabs.ThoughtProcessTab)}
                             onSupportingContentClicked={() => onToggleTab(AnalysisPanelTabs.SupportingContentTab)}
                         />
+                        <Stack horizontal>
+                            <Label>completion_tokens: </Label>
+                            <Label>{completionTokens}</Label>
+                        </Stack>
+                        <Stack horizontal>
+                            <Label>  prompt_tokens: </Label>
+                            <Label>{promptTokens}</Label>
+                        </Stack>
+                        <Stack horizontal>
+                            <Label>  total_tokens: </Label>
+                            <Label>{totalTokens}</Label>
+                        </Stack>
                     </div>
                 )}
                 {error ? (

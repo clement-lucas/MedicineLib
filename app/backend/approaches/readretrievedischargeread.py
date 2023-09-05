@@ -76,8 +76,8 @@ Answer ONLY with the facts listed in the list of sources below. If there isn't e
         # 例）「なし」と出力します。 -> なし
         # if answer.find("「なし」と出力します。") != -1 or answer.find("「なし」という文言を出力します。") != -1:
         #     answer = "なし"
-        return "【" + category_name+ "】" + "\n" + answer + "\n\n" 
-    
+        return "【" + category_name+ "】" + "\n" + answer + "\n\n", completion.usage.completion_tokens, completion.usage.prompt_tokens, completion.usage.total_tokens
+
     def get_allergy(self, cursor, pi_item_id, jpn_item_name, patient_code):
         select_allergy_sql = """SELECT PI_ITEM_02, PI_ITEM_03
             FROM EATBPI
@@ -333,17 +333,26 @@ Answer ONLY with the facts listed in the list of sources below. If there isn't e
             allergy = "【アレルギー・不適応反応】\n" + "なし\n\n"
         ret += allergy
 
+        # token の集計
+        sum_of_completion_tokens = 0
+        sum_of_prompt_tokens = 0
+        sum_of_total_tokens = 0
+
         # 【主訴または入院理由】​
-        ret += self.get_answer("主訴または入院理由", """あなたは医療事務アシスタントです。
+        answer = self.get_answer("主訴または入院理由", """あなたは医療事務アシスタントです。
 カルテデータから退院時サマリの項目である【主訴または入院理由】​を作成してください。
 作成した【主訴または入院理由】の部分のみ出力してください。前後の修飾文や、項目名は不要です。
 カルテデータは、医師または看護師の書いた SOAP から構成されます。
 カルテデータから【主訴または入院理由】が読み取れない場合、「なし」という文言を出力してください。
 作成される文章は1000文字以内とします。
 """, records_so)
+        ret += answer[0]
+        sum_of_completion_tokens += answer[1]
+        sum_of_prompt_tokens += answer[2]
+        sum_of_total_tokens += answer[3]
 
         # 【入院までの経過】​
-        ret += self.get_answer("入院までの経過", """あなたは医療事務アシスタントです。
+        answer = self.get_answer("入院までの経過", """あなたは医療事務アシスタントです。
 カルテデータから退院時サマリの項目である【入院までの経過】​を作成してください。
 【入院までの経過】​は、サブ項目として＜現病歴＞、＜既往歴＞、＜入院時身体所見＞、＜入院時検査所見＞から構成されます。
 ＜現病歴＞は S から、＜既往歴＞は S から、＜入院時身体所見＞は O から、＜入院時検査所見＞は O から始まる項目より抽出してください。
@@ -352,9 +361,13 @@ Answer ONLY with the facts listed in the list of sources below. If there isn't e
 カルテデータから各サブ項目が読み取れない場合、「なし」という文言を出力してください。
 作成される文章は1000文字以内とします。
 """, records_soap)
+        ret += answer[0]
+        sum_of_completion_tokens += answer[1]
+        sum_of_prompt_tokens += answer[2]
+        sum_of_total_tokens += answer[3]
 
         # 【入院経過】​
-        ret += self.get_answer("入院経過", """あなたは医療事務アシスタントです。
+        answer = self.get_answer("入院経過", """あなたは医療事務アシスタントです。
 カルテデータから退院時サマリの項目である【入院経過】​を作成しようとしています。
 カルテデータは、医師または看護師の書いた SOAP から構成されます。
 カルテデータの A (assessment) の部分を入院経過として出力してください。
@@ -362,15 +375,24 @@ Answer ONLY with the facts listed in the list of sources below. If there isn't e
 カルテデータから A (assessment) の部分が読み取れない場合、「なし」という文言を出力してください。
 作成される文章は1000文字以内とします。
 """, records_a)
+        ret += answer[0]
+        sum_of_completion_tokens += answer[1]
+        sum_of_prompt_tokens += answer[2]
+        sum_of_total_tokens += answer[3]
 
         # 【退院時状況】​
-        temp = self.get_answer("退院時の状況​​", """あなたは医療事務アシスタントです。
+        answer = self.get_answer("退院時の状況​​", """あなたは医療事務アシスタントです。
 カルテデータから退院時サマリの項目である【退院時の状況】​を作成してください。
 作成した【退院時の状況】の部分のみ出力してください。前後の修飾文や、項目名は不要です。
 カルテデータは、医師または看護師の書いた SOAP から構成されます。
 カルテデータから【退院時の状況】が読み取れない場合、「なし」という文言を出力してください。
 作成される文章は1000文字以内とします。
 """, records_oa)
+        temp = answer[0]
+        sum_of_completion_tokens += answer[1]
+        sum_of_prompt_tokens += answer[2]
+        sum_of_total_tokens += answer[3]
+
         # tempの中の項目名である【退院時の状況】を【退院時状況】に変更する
         # これは、項目名に「の」を含めた方が、
         # GPT が生成する文章の正確性（「なし」を「なし」と出力）が高い傾向が見受けられたため。
@@ -402,7 +424,7 @@ Answer ONLY with the facts listed in the list of sources below. If there isn't e
         ret += medicine
 
         # 【退院時方針】
-        ret += self.get_answer("退院時方針", """あなたは医療事務アシスタントです。
+        answer = self.get_answer("退院時方針", """あなたは医療事務アシスタントです。
 カルテデータから退院時サマリの項目である【退院時方針】​を作成してください。
 ただし、退院時方針は治療方針とは異なります。治療方針を含めないでください。
 「退院時」や「退院」という文言を含まない文脈は、退院時方針ではないので注意してください。
@@ -411,8 +433,17 @@ Answer ONLY with the facts listed in the list of sources below. If there isn't e
 カルテデータから【退院時方針】が読み取れない場合、「なし」という文言を出力してください。
 作成される文章は1000文字以内とします。
 """, records_p)
+        ret += answer[0]
+        sum_of_completion_tokens += answer[1]
+        sum_of_prompt_tokens += answer[2]
+        sum_of_total_tokens += answer[3]
         
         print(ret)
         print("\n\n\nカルテデータ：\n" + records_soap + allergy + medicine)
-        return {"data_points": "test results", "answer": ret + "\n\n\nカルテデータ：\n" + records_soap + allergy + medicine, "thoughts": ""}
+        return {"data_points": "test results", 
+                "answer": ret + "\n\n\nカルテデータ：\n" + records_soap + allergy + medicine, 
+                "thoughts": "", 
+                "completion_tokens": sum_of_completion_tokens,   
+                "prompt_tokens": sum_of_prompt_tokens,   
+                "total_tokens": sum_of_total_tokens}
 
