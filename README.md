@@ -138,7 +138,6 @@ cd <project_root>
 この設定は、ローカルにて Webアプリケーションを実行する際に参照される。  
 SQL_AUTHENTICATION="ActiveDirectoryMsi"  
 SQL_CONNECTION_STRING="Driver={ODBC Driver 18 for SQL Server};Server=tcp:<sql-server-namme>.database.windows.net,1433;Database=<sql-db-name>;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"  
-  
 同じ設定を、 Azure Portal 等から Web アプリケーションに対しても行う。  
 この設定は、Azure 上にて Webアプリケーションを実行する際に参照される。  
 
