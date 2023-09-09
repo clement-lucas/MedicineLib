@@ -120,7 +120,27 @@ azd deploy
 2. 以下のコマンドを実行する。  
 cd <project_root>  
 .\scripts\prepdocs.ps1  
+
+
+# SQL Server の認証に AAD 認証を使用する場合の手順
+1. Asure Portal にアクセスし、SQL Server の認証方式に AAD があることを確認する。  
   
+2. Asure Portal にアクセスし、SQL Server の アクセス制御 (IAM) にて、Web アプリケーションに SQL Server 共同管理者 権限を付与する。  
+
+3. SQL データベースにて以下の SQL を実行する。  
+.\ddl\credensial\CreateUser.sql  
+この時、<web-app-name> の部分を、Web アプリケーションの名前に置き換える。  
+  
+4. 接続文字列を設定する。  
+.azure\<env_name>\.env  
+ファイルに以下の設定を記載する。  
+この設定は、ローカルにて Webアプリケーションを実行する際に参照される。  
+SQL_AUTHENTICATION="ActiveDirectoryMsi"  
+SQL_CONNECTION_STRING="Driver={ODBC Driver 18 for SQL Server};Server=tcp:<sql-server-namme>.database.windows.net,1433;Database=<sql-db-name>;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"  
+  
+同じ設定を、 Asule Portal 等から Web アプリケーションに対しても行う。  
+この設定は、Azure 上にて Webアプリケーションを実行する際に参照される。  
+
 # トラブルシューティング
 ## hogehoge.ps1 がロックされていて実行できない旨のエラーが発生
 デプロイ作業中、 hogehoge.ps1 がロックされていて実行できない旨のエラーが発生した場合、power shell から以下のコマンドを実行し、ロックを解除し、再試行する。  

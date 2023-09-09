@@ -2,17 +2,10 @@
 # 退院時サマリの作成 #
 ######################
 
-import os
 import openai
-import pyodbc
+from lib.sqlconnector import SQLConnector
 from approaches.approach import Approach
 from azure.search.documents import SearchClient
-from azure.search.documents.models import QueryType
-from langchain.llms.openai import AzureOpenAI
-from langchain.callbacks.base import CallbackManager
-from langchain.chains import LLMChain
-from langchain.agents import Tool, ZeroShotAgent, AgentExecutor
-from langchain.llms.openai import AzureOpenAI
 from langchainadapters import HtmlCallbackHandler
 from text import nonewlines
 from lookuptool import CsvLookupTool
@@ -100,8 +93,7 @@ Answer ONLY with the facts listed in the list of sources below. If there isn't e
 
         # SQL Server に接続する
         # 接続文字列を取得する
-        sql_connection_string = os.environ.get('SQL_CONNECTION_STRING')
-        cnxn = pyodbc.connect(sql_connection_string)
+        cnxn = SQLConnector.get_conn()
         cursor = cnxn.cursor()
 
         # SQL Server から患者情報を取得する

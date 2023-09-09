@@ -1,10 +1,7 @@
-import os
 import openai
-import pyodbc
+from lib.sqlconnector import SQLConnector
 from azure.search.documents import SearchClient
-from azure.search.documents.models import QueryType
 from approaches.approach import Approach
-from text import nonewlines
 
 # Simple retrieve-then-read implementation, using the Cognitive Search and OpenAI APIs directly. It first retrieves
 # top documents from search, then constructs a prompt with them, and then uses OpenAI to generate an completion 
@@ -16,11 +13,6 @@ Answer ONLY with the facts listed in the list of sources below. If there isn't e
 For tabular information return it as an html table. Do not return markdown format.
 Each source has a date followed by colon and the actual information, always include date for each fact you use in the response.At the end of the response, give the date of the data used in the format [yyyy/mm/dd].
 """
-    SQL_SERVER = os.environ.get("SQL_SERVER") or "no_setting_SQL_SERVER_on_env"
-    SQL_DATABASE = os.environ.get("SQL_DATABASE") or "MedicalRecordDB"
-    SQL_USER = os.environ.get("SQL_USER") or "medical-record-admin"
-    SQL_PASSWORD = os.environ.get("SQL_PASSWORD") or "no_setting_SQL_PASSWORD_on_env"
-
     def __init__(self, search_client: SearchClient, chatgpt_deployment: str, gpt_deployment: str, sourcepage_field: str, content_field: str):
         self.search_client = search_client
         self.chatgpt_deployment = chatgpt_deployment
@@ -29,10 +21,7 @@ Each source has a date followed by colon and the actual information, always incl
         self.content_field = content_field
 
     def run(self, history: list[dict], history_patient_code: list[dict], overrides: dict) -> any:
-        use_semantic_captions = True if overrides.get("semantic_captions") else False
-        top = overrides.get("top") or 3
         exclude_category = overrides.get("exclude_category") or None
-        filter = "category ne '{}'".format(exclude_category.replace("'", "''")) if exclude_category else None
 
         # ユーザーの入力した質問内容を取得する
         question = history[-1]["user"]
@@ -44,7 +33,7 @@ Each source has a date followed by colon and the actual information, always incl
         patient_code = history_patient_code[-1]["patientcode"]
 
         # SQL Server に接続する
-        cnxn = pyodbc.connect(os.environ.get("SQL_CONNECTION_STRING"))
+        cnxn = SQLConnector.get_conn()
         cursor = cnxn.cursor()
 
         # SQL Server から患者情報を取得する

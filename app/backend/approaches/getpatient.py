@@ -1,5 +1,4 @@
-import os
-import pyodbc
+from lib.sqlconnector import SQLConnector
 from approaches.approach import Approach
 from text import nonewlines
 
@@ -19,8 +18,7 @@ class GetPatientApproach(Approach):
         print(patient_code)
 
         # SQL Server に接続する
-        sql_connection_string = os.environ.get('SQL_CONNECTION_STRING')
-        cnxn = pyodbc.connect(sql_connection_string)
+        cnxn = SQLConnector.get_conn()
         cursor = cnxn.cursor()
 
         # SQL Server から患者情報を取得する
@@ -30,5 +28,4 @@ class GetPatientApproach(Approach):
         for row in rows:
             return {"name":row[0]}
         return {"name":"患者情報が見つかりませんでした。"}
-
 
