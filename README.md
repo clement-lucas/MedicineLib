@@ -122,10 +122,10 @@ cd <project_root>
 .\scripts\prepdocs.ps1  
 
 
-# SQL Server の認証に AAD 認証を使用する場合の手順
-1. Azure Portal にアクセスし、SQL Server の認証方式に AAD があることを確認する。  
+# Azure SQL Server の認証に AAD 認証を使用する場合の手順
+1. Azure Portal にアクセスし、Azure SQL Server の認証方式に AAD があることを確認する。  
   
-2. Azure Portal にアクセスし、SQL Server の アクセス制御 (IAM) にて、Web アプリケーションに SQL Server 共同管理者 権限を付与する。  
+2. Azure Portal にアクセスし、Azure SQL Server の アクセス制御 (IAM) にて、Web アプリケーションに SQL Server 共同管理者 権限を付与する。  
 
 3. SQL データベースにて以下の SQL を実行する。  
 .\ddl\credensial\CreateUser.sql  
