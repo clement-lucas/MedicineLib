@@ -237,3 +237,11 @@ export function convertCitationFilePath2AllPagesFilePath(splitted_citation_file_
     var ret = splitted_citation_file_path.replace(/-\d+\.pdf/, '.pdf');  
     return ret;
 }
+
+export function setPdfZoom(citation: any, zoom_value: any): any {
+    if (citation == undefined)
+    {
+        return undefined;
+    }
+    return citation + "#zoom=" + zoom_value;
+}

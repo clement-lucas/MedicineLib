@@ -4,7 +4,7 @@ import DOMPurify from "dompurify";
 import styles from "./AnalysisPanel.module.css";
 
 import { SupportingContent } from "../SupportingContent";
-import { AskResponse, convertCitationFilePath2AllPagesFilePath } from "../../api";
+import { AskResponse, convertCitationFilePath2AllPagesFilePath, setPdfZoom } from "../../api";
 import { AnalysisPanelTabs } from "./AnalysisPanelTabs";
 
 interface Props {
@@ -50,14 +50,14 @@ export const AnalysisPanel = ({ answer, activeTab, activeCitation, citationHeigh
                 headerText="Citation"
                 headerButtonProps={isDisabledCitationTab ? pivotItemDisabledStyle : undefined}
             >
-                <iframe title="Citation" src={activeCitation} width="100%" height={citationHeight} />
+                <iframe title="Citation" src={setPdfZoom(activeCitation, 80)} width="100%" height={citationHeight} />
             </PivotItem>
             <PivotItem
                 itemKey={AnalysisPanelTabs.CitationAllPagesTab}
                 headerText="Citation All Pages"
                 headerButtonProps={isDisabledCitationTab ? pivotItemDisabledStyle : undefined}
             >
-                <iframe title="Citation All Pages" src={convertCitationFilePath2AllPagesFilePath(activeCitation)} width="100%" height={citationHeight} />
+                <iframe title="Citation All Pages" src={setPdfZoom(convertCitationFilePath2AllPagesFilePath(activeCitation), 80)} width="100%" height={citationHeight} />
             </PivotItem>
         </Pivot>
     );
