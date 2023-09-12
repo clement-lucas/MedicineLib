@@ -226,3 +226,14 @@ export async function getPatientOldApi(options: GetPatientRequest): Promise<GetP
 export function getCitationFilePath(citation: string): string {
     return `/content/${citation}`;
 }
+
+export function convertCitationFilePath2AllPagesFilePath(splitted_citation_file_path: any): any {
+    if (splitted_citation_file_path == undefined)
+    {
+        return undefined;
+    }
+    // filename-10.pdf のようなファイル名を、filename.pdf のようなファイル名に変換する
+
+    var ret = splitted_citation_file_path.replace(/-\d+\.pdf/, '.pdf');  
+    return ret;
+}

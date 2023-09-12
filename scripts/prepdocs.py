@@ -53,11 +53,30 @@ if not args.localpdfparser:
         exit(1)
     formrecognizer_creds = default_creds if args.formrecognizerkey == None else AzureKeyCredential(args.formrecognizerkey)
 
+# ファイル名から半角スペースと特殊文字を半角スペースに変換する
+def convert_filename(filename):
+    # ファイル名から半角スペースと特殊文字を半角スペースに変換する
+    filename = filename.replace(" ", "_")
+    filename = filename.replace("+", "_")
+    filename = filename.replace("α", "alpha")
+    return filename
+
+
 def blob_name_from_file_page(filename, page = 0):
+    filename_new = ""
     if os.path.splitext(filename)[1].lower() == ".pdf":
-        return os.path.splitext(os.path.basename(filename))[0] + f"-{page}" + ".pdf"
+        filename_new = os.path.splitext(os.path.basename(filename))[0] + f"-{page}" + ".pdf"
     else:
-        return os.path.basename(filename)
+        filename_new = os.path.basename(filename)
+    return convert_filename(filename_new)
+
+def blob_name_from_file(filename):
+    filename_new = ""
+    if os.path.splitext(filename)[1].lower() == ".pdf":
+        filename_new = os.path.splitext(os.path.basename(filename))[0] + ".pdf"
+    else:
+        filename_new = os.path.basename(filename)
+    return convert_filename(filename_new)
 
 def upload_blobs(filename):
     blob_service = BlobServiceClient(account_url=f"https://{args.storageaccount}.blob.core.windows.net", credential=storage_creds)
@@ -67,6 +86,13 @@ def upload_blobs(filename):
 
     # if file is PDF split into pages and upload each page as a separate blob
     if os.path.splitext(filename)[1].lower() == ".pdf":
+
+        # Upload add pages file.
+        blob_name_allpages = blob_name_from_file(filename)
+        f_allpages = io.BytesIO()
+        writer_allpages = PdfWriter()
+
+        # Upload files splited by page.
         reader = PdfReader(filename)
         pages = reader.pages
         for i in range(len(pages)):
@@ -76,8 +102,17 @@ def upload_blobs(filename):
             writer = PdfWriter()
             writer.add_page(pages[i])
             writer.write(f)
+
+            writer_allpages.add_page(pages[i])
+            writer_allpages.write(f_allpages)
+
             f.seek(0)
             blob_container.upload_blob(blob_name, f, overwrite=True)
+
+        if args.verbose: print(f"\tUploading blob for all pages -> {blob_name_allpages}")
+        f_allpages.seek(0)
+        blob_container.upload_blob(blob_name_allpages, f_allpages, overwrite=True)
+
     else:
         blob_name = blob_name_from_file_page(filename)
         with open(filename,"rb") as data:
@@ -224,11 +259,11 @@ def split_text(page_map):
 def create_sections(filename, page_map):
     for i, (section, pagenum) in enumerate(split_text(page_map)):
         yield {
-            "id": re.sub("[^0-9a-zA-Z_-]","_",f"{filename}-{i}"),
+            "id": re.sub("[^0-9a-zA-Z_-]","_",f"{blob_name_from_file(filename)}-{i}"),
             "content": section,
             "category": args.category,
             "sourcepage": blob_name_from_file_page(filename, pagenum),
-            "sourcefile": filename
+            "sourcefile": blob_name_from_file(filename)
         }
 
 def create_search_index():

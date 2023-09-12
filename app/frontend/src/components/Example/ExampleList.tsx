@@ -4,14 +4,20 @@ import styles from "./Example.module.css";
 
 const EXAMPLES: ExampleModel[] = [
     {
-        text: "What is the side effects of cancer treatment in children?",
-        value: "What is the side effects of cancer treatment in children?"
+        text: "ヒュミラ（アダリムマブ）の使用による有害事象の発現率を症状別にリストアップしてください。",
+        value: "ヒュミラ（アダリムマブ）の使用による有害事象の発現率を症状別にリストアップしてください。"
     },
-    { text: "What is the effective dose of FPD for gastric cancer screening?", 
-      value: "What is the effective dose of FPD for gastric cancer screening?"
+    { text: "ヒュミラ（アダリムマブ）の有害事象の中で、特に重篤とされるものはありますか？",  
+      value: "ヒュミラ（アダリムマブ）の有害事象の中で、特に重篤とされるものはありますか？"
     },
-    { text: "小児がん治療についての情報を教えてください", 
-      value: "小児がん治療についての情報を教えてください" 
+    { text: "ヒュミラ（アダリムマブ）の有害事象発現のリスクを増加させる要因や共病状態は知られていますか？", 
+      value: "ヒュミラ（アダリムマブ）の有害事象発現のリスクを増加させる要因や共病状態は知られていますか？" 
+    },
+    { text: "ヒュミラ（アダリムマブ）の有害事象が発現した際の管理方法や対処法はどのようなものが提案されていますか？", 
+      value: "ヒュミラ（アダリムマブ）の有害事象が発現した際の管理方法や対処法はどのようなものが提案されていますか？" 
+    },
+    { text: "ヒュミラ（アダリムマブ）の有害事象の発現率や特性は、他の同クラス薬剤と比較してどのような特徴がありますか？", 
+      value: "ヒュミラ（アダリムマブ）の有害事象の発現率や特性は、他の同クラス薬剤と比較してどのような特徴がありますか？" 
     }
 ];
 

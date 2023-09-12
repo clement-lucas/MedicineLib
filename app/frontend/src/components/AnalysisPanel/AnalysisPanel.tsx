@@ -4,7 +4,7 @@ import DOMPurify from "dompurify";
 import styles from "./AnalysisPanel.module.css";
 
 import { SupportingContent } from "../SupportingContent";
-import { AskResponse } from "../../api";
+import { AskResponse, convertCitationFilePath2AllPagesFilePath } from "../../api";
 import { AnalysisPanelTabs } from "./AnalysisPanelTabs";
 
 interface Props {
@@ -51,6 +51,13 @@ export const AnalysisPanel = ({ answer, activeTab, activeCitation, citationHeigh
                 headerButtonProps={isDisabledCitationTab ? pivotItemDisabledStyle : undefined}
             >
                 <iframe title="Citation" src={activeCitation} width="100%" height={citationHeight} />
+            </PivotItem>
+            <PivotItem
+                itemKey={AnalysisPanelTabs.CitationAllPagesTab}
+                headerText="Citation All Pages"
+                headerButtonProps={isDisabledCitationTab ? pivotItemDisabledStyle : undefined}
+            >
+                <iframe title="Citation All Pages" src={convertCitationFilePath2AllPagesFilePath(activeCitation)} width="100%" height={citationHeight} />
             </PivotItem>
         </Pivot>
     );

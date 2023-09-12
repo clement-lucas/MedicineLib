@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { Checkbox, Panel, DefaultButton, TextField, SpinButton } from "@fluentui/react";
-import stethoscope from "../../assets/stethoscope.svg";
+import medicine from "../../assets/medicine.svg";
 
 import styles from "./Chat.module.css";
 
@@ -34,7 +34,7 @@ const Chat = () => {
     const [selectedAnswer, setSelectedAnswer] = useState<number>(0);
     const [answers, setAnswers] = useState<[user: string, response: AskResponse][]>([]);
 
-    const iconStyle: React.CSSProperties = { padding: 10, width: 100, height: 90,  color: "#465f8b" };
+    const iconStyle: React.CSSProperties = { padding: 10, width: 180, height: 90,  color: "#465f8b" };
 
     const makeApiRequest = async (question: string) => {
         lastQuestionRef.current = question;
@@ -130,14 +130,14 @@ const Chat = () => {
         <div className={styles.container}>
             <div className={styles.commandsContainer}>
                 <ClearChatButton className={styles.commandButton} onClick={clearChat} disabled={!lastQuestionRef.current || isLoading} />
-                <SettingsButton className={styles.commandButton} onClick={() => setIsConfigPanelOpen(!isConfigPanelOpen)} />
+                {/* 今はこの機能に対応しない <SettingsButton className={styles.commandButton} onClick={() => setIsConfigPanelOpen(!isConfigPanelOpen)} /> */}
             </div>
             <div className={styles.chatRoot}>
                 <div className={styles.chatContainer}>
                     {!lastQuestionRef.current ? (
                         <div className={styles.chatEmptyState}>
-                            <img src={stethoscope} alt="stethoscope" style={iconStyle}  />
-                            <h1 className={styles.chatEmptyStateTitle}>AI Medical Assistant</h1>
+                            <img src={medicine} alt="medicine" style={iconStyle}  />
+                            <h1 className={styles.chatEmptyStateTitle}>AI Medicine Library</h1>
                             <h2 className={styles.chatEmptyStateSubtitle}>例えば こんなふうに質問してください</h2>
                             <ExampleList onExampleClicked={onExampleClicked} />
                         </div>
