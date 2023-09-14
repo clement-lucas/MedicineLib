@@ -125,13 +125,16 @@ cd <project_root>
 # Azure SQL Server の認証に AAD 認証を使用する場合の手順
 1. Azure Portal にアクセスし、Azure SQL Server の認証方式に AAD があることを確認する。  
   
-2. Azure Portal にアクセスし、Azure SQL Server の アクセス制御 (IAM) にて、Web アプリケーションに SQL Server 共同管理者 権限を付与する。  
+2. Azure Portal にアクセスし、Azure SQL Server の ID メニューにてシステム割り当てマネージドIDを オンにする
+。  
 
-3. SQL データベースにて以下の SQL を実行する。  
+3. Azure Portal にアクセスし、Azure SQL Server の アクセス制御 (IAM) にて、Web アプリケーションに SQL Server 共同管理者 権限を付与する。  
+
+4. SQL データベースにて以下の SQL を実行する。  
 .\ddl\credensial\CreateUser.sql  
 この時、<web-app-name> の部分を、Web アプリケーションの名前に置き換える。  
   
-4. 接続文字列を設定する。  
+5. 接続文字列を設定する。  
 .azure\<env_name>\.env  
 ファイルに以下の設定を記載する。  
 <sql-server-namme>, <sql-db-namme> は適宜置き換える。  
